@@ -1,0 +1,31 @@
+# Simulation artifacts
+sim/*.vvp
+sim/*.vcd
+sim/*.lxt
+sim/*.lxt2
+sim/*.fst
+sim/*.out
+
+# Waveform files
+*.gtkw
+*.gtkw.meta
+
+# Icarus Verilog intermediate files
+*.ivl
+
+# Synthesis artifacts
+*.dc
+*.syn.v
+*.synth
+*.rpt
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/

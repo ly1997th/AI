@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-06-08T00:00:00.000Z" agent="Claude Code RTL Diagram Generator" version="24.0.0">
+  <diagram name="蜂鸟E203 数据流图" id="diagram-1">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1600" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="2" value="&lt;b&gt;&lt;font style=&quot;font-size: 18px;&quot;&gt;蜂鸟 E203 数据流图&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;2级流水线: ITCM → IFU (取指) → EXU (译码+执行+写回) → LSU (访存) → BIU (总线) → DTCM/外设&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="800" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="10" value="&lt;b&gt;Stage 1: 取指&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;arcSize=8;dashed=1;dashPattern=8 4;verticalAlign=top;align=center;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="220" height="280" as="geometry"/>
+        </mxCell>
+        <mxCell id="11" value="&lt;b&gt;ITCM SRAM&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;指令紧耦合存储器&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="70" y="140" width="160" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="12" value="&lt;b&gt;e203_ifu&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;取指单元&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;IFETCH + Mini-Decode&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;+ 轻量分支预测 (BPU)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="220" width="180" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="13" value="&lt;b&gt;IFU 输出&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;ir[31:0], pc[31:0]&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;rs1idx, rs2idx, prdt_taken&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="80" y="320" width="150" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="14" value="&lt;font style=&quot;font-size: 9px;&quot;&gt;指令 32b&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0066CC;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="11" target="12">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="20" value="&lt;b&gt;Stage 2: 执行 + 写回&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;arcSize=8;dashed=1;dashPattern=8 4;verticalAlign=top;align=center;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="320" y="100" width="360" height="380" as="geometry"/>
+        </mxCell>
+        <mxCell id="21" value="&lt;b&gt;e203_exu_decode&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;指令译码&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="340" y="140" width="140" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="22" value="&lt;b&gt;e203_exu_disp&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;指令分发&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="510" y="140" width="120" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="23" value="&lt;b&gt;寄存器堆&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;e203_exu_regfile&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;32×32b 通用寄存器&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="340" y="220" width="150" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="24" value="&lt;b&gt;e203_exu_alu&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;ALU 执行单元&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;rglr | muldiv | lsuagu | bjp | csr&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="340" y="310" width="220" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="25" value="&lt;b&gt;OITF + WB&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;写回 / 提交&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="360" y="410" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="26" value="&lt;font style=&quot;font-size: 9px;&quot;&gt;ifu_o (ir+pc)&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0066CC;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="12" target="21">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="27" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0066CC;strokeWidth=1;endArrow=classic;" edge="1" parent="1" source="21" target="22">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="28" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;RS1/RS2&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#339933;strokeWidth=1;dashed=1;endArrow=classic;startArrow=classic;" edge="1" parent="1" source="22" target="23">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="570" y="195"/>
+              <mxPoint x="570" y="247"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="29" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0066CC;strokeWidth=1;endArrow=classic;" edge="1" parent="1" source="23" target="24">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="30" value="&lt;b&gt;Stage 3: 访存&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;arcSize=8;dashed=1;dashPattern=8 4;verticalAlign=top;align=center;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="740" y="100" width="260" height="280" as="geometry"/>
+        </mxCell>
+        <mxCell id="31" value="&lt;b&gt;e203_lsu&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;访存单元&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;AGU → ITCM/DTCM/BIU&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="770" y="140" width="200" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="32" value="&lt;b&gt;DTCM SRAM&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;数据紧耦合存储器&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="790" y="230" width="160" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="33" value="&lt;b&gt;写回数据&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;wbck_wdat[31:0]&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="800" y="320" width="140" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="34" value="&lt;font style=&quot;font-size: 9px;&quot;&gt;lsu_o (agu cmd)&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0066CC;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="24" target="31">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="35" value="&lt;font style=&quot;font-size: 9px;&quot;&gt;数据访存&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0066CC;strokeWidth=2;endArrow=classic;startArrow=classic;" edge="1" parent="1" source="31" target="32">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="36" value="&lt;font style=&quot;font-size: 9px;&quot;&gt;写回 exu&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0066CC;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="33" target="25">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1000" y="337"/>
+              <mxPoint x="1000" y="460"/>
+              <mxPoint x="520" y="460"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="40" value="&lt;b&gt;Stage 4: 总线接口&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;arcSize=8;dashed=1;dashPattern=8 4;verticalAlign=top;align=center;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="100" width="320" height="280" as="geometry"/>
+        </mxCell>
+        <mxCell id="41" value="&lt;b&gt;e203_biu&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;总线接口单元 (ICB 矩阵)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="140" width="280" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="42" value="&lt;b&gt;PPI&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="230" width="55" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="43" value="&lt;b&gt;PLIC&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1155" y="230" width="55" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="44" value="&lt;b&gt;CLINT&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="230" width="55" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="45" value="&lt;b&gt;FIO&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="275" width="55" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="46" value="&lt;b&gt;MEM (系统总线)&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1155" y="275" width="120" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="47" value="&lt;font style=&quot;font-size: 9px;&quot;&gt;lsu→biu ICB&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0066CC;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="31" target="41">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1000" y="167"/>
+              <mxPoint x="1000" y="167"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="48" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0066CC;strokeWidth=1;endArrow=classic;" edge="1" parent="1" source="41" target="42">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="49" value="&lt;font style=&quot;font-size: 9px;&quot;&gt;IFU 读指令&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0066CC;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="41" target="46">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1280" y="195"/>
+              <mxPoint x="1380" y="195"/>
+              <mxPoint x="1380" y="290"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="50" value="&lt;b&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;数据宽度图例&lt;/font&gt;&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="430" width="200" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="51" value="&lt;b&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;32b&lt;/font&gt;&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="460" width="40" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="52" value="&lt;font style=&quot;font-size: 10px;&quot;&gt;指令 / 数据 / 地址 (RV32)&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="90" y="460" width="180" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="53" value="&lt;b&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;ICB&lt;/font&gt;&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="492" width="40" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="54" value="&lt;font style=&quot;font-size: 10px;&quot;&gt;内部芯片总线 (类 AXI)&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="90" y="492" width="180" height="22" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

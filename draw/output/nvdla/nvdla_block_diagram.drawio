@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-06-09T00:00:00.000Z" agent="Claude Code RTL Diagram Generator" version="24.0.0">
+  <diagram name="NVDLA 模块框图" id="diagram-1">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="2" value="&lt;b&gt;&lt;font style=&quot;font-size: 18px;&quot;&gt;NVDLA 模块框图&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;顶层: NV_nvdla | NVIDIA 开源深度学习加速器 | 2048 INT8 MAC / 1024 INT16 MAC | 5 分区架构&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="700" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="3" value="&lt;b&gt;NV_nvdla&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;NVIDIA 深度学习加速器顶层&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1a1a2e;strokeColor=#16213e;fontColor=#ffffff;fontSize=14;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="520" y="100" width="320" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="10" value="&lt;b&gt;Partition P: 基础设施&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;GLB + CAR + NOCIF + RETIMING&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;arcSize=10;verticalAlign=top;align=center;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="260" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="11" value="&lt;b&gt;GLB&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;全局控制 + 中断&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="55" y="235" width="70" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="12" value="&lt;b&gt;CAR&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;时钟+复位&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="135" y="235" width="70" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="13" value="&lt;b&gt;NOCIF&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;片上网络接口 (AXI4)&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="55" y="285" width="150" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="14" value="&lt;b&gt;RETIMING&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;流水线寄存器级&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="55" y="235" width="0" height="0" as="geometry"/>
+        </mxCell>
+        <mxCell id="20" value="&lt;b&gt;Partition A: 配置接口&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;APB2CSB + CSB Master&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;arcSize=10;verticalAlign=top;align=center;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="340" y="200" width="220" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="21" value="&lt;b&gt;APB2CSB&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;APB→CSB 桥&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="355" y="240" width="85" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="22" value="&lt;b&gt;CSB Master&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;配置总线主控&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="450" y="240" width="95" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="30" value="&lt;b&gt;Partition C: 卷积核心&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;CDMA + CACC + CSC + CBUF&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;arcSize=10;verticalAlign=top;align=center;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="40" y="400" width="560" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="31" value="&lt;b&gt;CDMA&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;卷积 DMA&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 6px;&quot;&gt;DRAM←→SRAM 数据搬运&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="55" y="445" width="120" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="32" value="&lt;b&gt;CBUF&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;卷积缓冲区 (512KB)&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="200" y="445" width="140" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="33" value="&lt;b&gt;CSC&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;卷积序列控制器&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 6px;&quot;&gt;atomic→stripe→block→channel&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="365" y="445" width="150" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="34" value="&lt;b&gt;CACC&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;卷积累加器&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 6px;&quot;&gt;部分和累加存储&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="540" y="445" width="50" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="40" value="&lt;b&gt;Partition M ×2: MAC 阵列&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;CMAC (16 cells × 64 MACs) ×2 实例&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;arcSize=10;verticalAlign=top;align=center;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="640" y="400" width="300" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="41" value="&lt;b&gt;CMAC (partition_ma)&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;16 MAC Cells × 64 乘法器&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 6px;&quot;&gt;= 1024 INT16/FP16 MACs&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="655" y="440" width="130" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="42" value="&lt;b&gt;CMAC (partition_mb)&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;16 MAC Cells × 64 乘法器&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 6px;&quot;&gt;= 1024 INT16/FP16 MACs&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="800" y="440" width="130" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="50" value="&lt;b&gt;Partition O: 后处理&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;SDP + PDP + CDP + BDMA + RUBIK&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;arcSize=10;verticalAlign=top;align=center;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="640" y="570" width="440" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="51" value="&lt;b&gt;SDP&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;逐点处理器&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 6px;&quot;&gt;Bias+BN+ReLU/sigmoid/tanh&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="655" y="610" width="130" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="52" value="&lt;b&gt;PDP&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;平面处理器&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 6px;&quot;&gt;Max/Min/Avg Pooling&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="800" y="610" width="110" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="53" value="&lt;b&gt;CDP&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;通道处理器&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 6px;&quot;&gt;LRN (局部响应归一化)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="925" y="610" width="130" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="54" value="&lt;b&gt;RUBIK&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;数据重排引擎&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 6px;&quot;&gt;split/merge/transpose&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="800" y="680" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="55" value="&lt;b&gt;BDMA&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;桥接 DMA&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 6px;&quot;&gt;DRAM↔SRAM 批量拷贝&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="655" y="680" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="60" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;主机 CPU&lt;/font&gt;&lt;/b&gt;" style="shape=actor;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="40" y="630" width="60" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="61" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;外部 DRAM&lt;/font&gt;&lt;/b&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f5f5f5;strokeColor=#666666;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="40" y="730" width="90" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="62" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;片上 SRAM&lt;/font&gt;&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="170" y="740" width="90" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="100" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;dla_csb_clk&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CC0000;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="12" target="20">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="320" y="252"/>
+              <mxPoint x="320" y="252"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="101" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;dla_core_clk&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CC0000;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="12" target="30">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="320" y="252"/>
+              <mxPoint x="320" y="400"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="102" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;CSB 配置 (32b)&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#339933;strokeWidth=1;dashed=1;endArrow=classic;" edge="1" parent="1" source="60" target="20">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="30" y="655"/>
+              <mxPoint x="30" y="270"/>
+              <mxPoint x="340" y="270"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="103" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;CSB→各模块配置&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#339933;strokeWidth=1;dashed=1;endArrow=classic;" edge="1" parent="1" source="22" target="30">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="104" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#339933;strokeWidth=1;dashed=1;endArrow=classic;" edge="1" parent="1" source="22" target="50">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="560" y="257"/>
+              <mxPoint x="560" y="610"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="105" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;AXI4 (DBBIF)&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;aw/ar/w/r/b&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0066CC;strokeWidth=2;endArrow=classic;startArrow=classic;" edge="1" parent="1" source="13" target="61">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="130" y="355"/>
+              <mxPoint x="130" y="370"/>
+              <mxPoint x="20" y="370"/>
+              <mxPoint x="20" y="762"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="106" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;AXI4 (SRAMIF)&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0066CC;strokeWidth=2;endArrow=classic;startArrow=classic;" edge="1" parent="1" source="13" target="62">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="130" y="355"/>
+              <mxPoint x="215" y="355"/>
+              <mxPoint x="215" y="740"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="107" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;权重+数据&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0066CC;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="31" target="32">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="108" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;权重/数据&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0066CC;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="32" target="33">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="109" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;sc2mac_dat[127:0]&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0066CC;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="33" target="40">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="600" y="472"/>
+              <mxPoint x="600" y="455"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="110" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;mac2acc 部分和&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0066CC;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="42" target="34">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="940" y="495"/>
+              <mxPoint x="565" y="495"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="111" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;cacc→sdp (融合模式)&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0066CC;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="34" target="51">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="565" y="500"/>
+              <mxPoint x="720" y="500"/>
+              <mxPoint x="720" y="610"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="112" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;sdp→pdp&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0066CC;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="51" target="52">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="113" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;sdp→cdp (LRN)&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0066CC;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="51" target="53">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="785" y="665"/>
+              <mxPoint x="990" y="665"/>
+              <mxPoint x="990" y="610"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="114" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;dla_intr&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CC6600;strokeWidth=1;endArrow=classic;" edge="1" parent="1" source="11" target="60">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="90" y="270"/>
+              <mxPoint x="70" y="270"/>
+              <mxPoint x="70" y="630"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="200" value="&lt;b&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;基础设施层 (CSB 时钟域)&lt;/font&gt;&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="170" width="300" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="201" value="&lt;b&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;卷积流水线 (Core 时钟域)&lt;/font&gt;&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="370" width="300" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="202" value="&lt;b&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;后处理流水线&lt;/font&gt;&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="640" y="540" width="200" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="300" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#d79b00;strokeWidth=1;dashed=1;dashPattern=8 4;" vertex="1" parent="1">
+          <mxGeometry x="25" y="185" width="290" height="170" as="geometry"/>
+        </mxCell>
+        <mxCell id="301" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#6c8ebf;strokeWidth=1;dashed=1;dashPattern=8 4;" vertex="1" parent="1">
+          <mxGeometry x="25" y="385" width="590" height="190" as="geometry"/>
+        </mxCell>
+        <mxCell id="302" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#82b366;strokeWidth=1;dashed=1;dashPattern=8 4;" vertex="1" parent="1">
+          <mxGeometry x="625" y="555" width="470" height="185" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-06-08T00:00:00.000Z" agent="Claude Code RTL Diagram Generator" version="24.0.0">
+  <diagram name="蜂鸟E203 控制流图" id="diagram-1">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1400" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="2" value="&lt;b&gt;&lt;font style=&quot;font-size: 18px;&quot;&gt;蜂鸟 E203 控制流图&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;复位序列 | 时钟门控 | WFI 休眠 | 中断处理 | 调试模式 | IFU/EXU 握手流水线&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="800" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="10" value="&lt;b&gt;复位序列 FSM&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;e203_reset_ctrl (clk_aon 域)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;arcSize=15;verticalAlign=top;align=center;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="380" height="220" as="geometry"/>
+        </mxCell>
+        <mxCell id="11" value="&lt;b&gt;上电复位&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;rst_n=0 (异步)&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="140" width="110" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="12" value="&lt;b&gt;同步释放&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;clk_aon 域&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="210" y="140" width="100" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="13" value="&lt;b&gt;rst_aon 释放&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;clk_ctrl 启动&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="140" y="220" width="120" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="14" value="&lt;b&gt;rst_core 释放&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;CPU 开始运行&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="300" y="220" width="100" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="15" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;[rst_n 上升沿]&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CC6600;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="11" target="12">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="16" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;[2-FF sync done]&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CC6600;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="12" target="13">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="260" y="210"/>
+              <mxPoint x="260" y="245"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="17" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;[clk 稳定]&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CC6600;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="13" target="14">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="20" value="&lt;b&gt;时钟门控控制&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;e203_clk_ctrl (clk_aon 域)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;arcSize=15;verticalAlign=top;align=center;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="480" y="100" width="280" height="220" as="geometry"/>
+        </mxCell>
+        <mxCell id="21" value="&lt;b&gt;全速运行&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;所有 clk 开启&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="520" y="140" width="110" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="22" value="&lt;b&gt;WFI 休眠&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;core_wfi=1&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="660" y="140" width="90" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="23" value="&lt;b&gt;时钟关闭&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;core_cgstop=1&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;门控 core_ifu/exu/lsu/biu&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFCCCC;strokeColor=#FF0000;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="540" y="230" width="150" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="24" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;[wfi]&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CC6600;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="21" target="22">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="25" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;[~wfi | irq]&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CC6600;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="22" target="23">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="26" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;[中断到达]&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CC6600;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="23" target="21">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="470" y="257"/>
+              <mxPoint x="470" y="165"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="30" value="&lt;b&gt;IFU → EXU 流水线握手&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;valid/ready 协议&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;arcSize=15;verticalAlign=top;align=center;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="40" y="380" width="420" height="280" as="geometry"/>
+        </mxCell>
+        <mxCell id="31" value="&lt;b&gt;IFU 取指&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;ifu_o_valid=1&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="420" width="110" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="32" value="&lt;b&gt;等待 EXU&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;ifu_o_ready?&lt;/font&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="210" y="415" width="70" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="33" value="&lt;b&gt;EXU 译码&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;译码 + 读寄存器&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="320" y="420" width="120" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="34" value="&lt;b&gt;停顿 (stall)&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;多周期/RAW/分支&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFCCCC;strokeColor=#FF0000;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="160" y="520" width="120" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="35" value="&lt;b&gt;流水线冲刷&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;pipe_flush_req&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFCCCC;strokeColor=#FF0000;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="320" y="520" width="120" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="36" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CC6600;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="31" target="32">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="37" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;[~ready]&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CC6600;strokeWidth=1;endArrow=classic;exitX=0.5;exitY=0;entryX=0.5;entryY=0;" edge="1" parent="1" source="32" target="32">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="245" y="390"/>
+              <mxPoint x="245" y="390"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="38" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;[ready]&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CC6600;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="32" target="33">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="39" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;长时间停顿&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CC6600;strokeWidth=1;endArrow=classic;" edge="1" parent="1" source="32" target="34">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="245" y="470"/>
+              <mxPoint x="245" y="545"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="40" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;分支跳转&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CC6600;strokeWidth=1;endArrow=classic;" edge="1" parent="1" source="33" target="35">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="50" value="&lt;b&gt;中断处理流程&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;e203_irq_sync + 中断响应&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;arcSize=15;verticalAlign=top;align=center;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="520" y="380" width="380" height="230" as="geometry"/>
+        </mxCell>
+        <mxCell id="51" value="&lt;b&gt;等待中断&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;ext/sft/tmr irq&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="540" y="420" width="110" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="52" value="&lt;b&gt;同步 (2-FF)&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;irq_sync&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="690" y="420" width="100" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="53" value="&lt;b&gt;CPU 响应&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;mtvec 跳转&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="820" y="420" width="90" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="54" value="&lt;b&gt;ISR 执行&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;mret 返回&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="730" y="520" width="100" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="55" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#9673a6;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="51" target="52">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="56" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#9673a6;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="52" target="53">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="57" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;[中断接受]&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CC6600;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="53" target="54">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="865" y="495"/>
+              <mxPoint x="865" y="545"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="60" value="&lt;b&gt;调试模式状态机&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;halt / step / ebreak&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;arcSize=15;verticalAlign=top;align=center;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="40" y="710" width="400" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="61" value="&lt;b&gt;正常运行&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;dbg_mode=0&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="750" width="110" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="62" value="&lt;b&gt;调试暂停&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;dbg_halt_r=1&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="210" y="750" width="110" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="63" value="&lt;b&gt;单步执行&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;dbg_step_r=1&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="210" y="840" width="110" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="64" value="&lt;b&gt;断点触发&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;ebreak / ebreakm&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFCCCC;strokeColor=#FF0000;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="60" y="840" width="110" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="65" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;[halt]&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CC6600;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="61" target="62">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="66" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;[step]&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CC6600;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="62" target="63">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="67" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;[ebreak]&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CC6600;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="61" target="64">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="68" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;[resume]&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#CC6600;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="62" target="61">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="170" y="775"/>
+              <mxPoint x="170" y="775"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="70" value="&lt;b&gt;&lt;font style=&quot;font-size: 12px;&quot;&gt;控制信号汇总 (Moore 型输出)&lt;/font&gt;&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="520" y="660" width="300" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="71" value="&lt;b&gt;信号&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#1a1a2e;strokeColor=#16213e;fontColor=#ffffff;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="520" y="695" width="120" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="72" value="&lt;b&gt;来源/目的地&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#1a1a2e;strokeColor=#16213e;fontColor=#ffffff;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="640" y="695" width="260" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="73" value="pipe_flush_req" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="520" y="717" width="120" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="74" value="EXU → IFU: 分支跳转冲刷流水线" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="640" y="717" width="260" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="75" value="wfi_halt_ifu_req" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="520" y="737" width="120" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="76" value="EXU → IFU: WFI 休眠暂停取指" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="640" y="737" width="260" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="77" value="oitf_empty" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="520" y="757" width="120" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="78" value="OITF → IFU: 长指令流水线空闲" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="640" y="757" width="260" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="79" value="core_cgstop" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="520" y="777" width="120" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="80" value="Core → clk_ctrl: 核心时钟门控关闭" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="640" y="777" width="260" height="20" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
