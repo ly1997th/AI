@@ -1,306 +1,181 @@
-# 阶段二：数字逻辑基础
+# 阶段二：数字逻辑基础与硬件思维
 
-## 1. 为什么需要数字逻辑？
+> **核心原则：先有电路，再写代码。** 绝对禁止像软件编程那样从行为描述直接生成 HDL 代码。必须先构建电路拓扑，再描述互连关系。
 
-CPU 本质上是一个**数字逻辑电路**。在学习处理器微架构之前，需要理解：
-- 组合逻辑：输出仅取决于当前输入（无记忆）
-- 时序逻辑：输出取决于当前输入 + 历史状态（有记忆）
+## 1. 硬件思维 vs 软件思维
 
-## 2. 组合逻辑
+在开始学习数字逻辑之前，必须建立正确的硬件思维框架。
 
-### 基本逻辑门
+| 软件思维（错误） | 硬件思维（正确） |
+|---|---|
+| 顺序执行（一行接一行） | 一切并行执行（空间展开） |
+| 过程追踪（确定某时刻的变量值，再追踪下一时刻） | 空间切片（压住时间，铺开空间，罗列所有场景） |
+| 函数调用 = 跳转 | 信号连接 = 实体导线 |
+| 变量 = 内存地址 | 寄存器 = DFF + 导线 |
+| if-else = 分支跳转 | if-else = MUX 拓扑 |
+| for 循环 = 重复执行 | for 循环 = 展开为并行硬件或状态机 |
 
-| 门 | 符号 | 表达式 | 真值表（A,B → Y） |
-|----|------|--------|-------------------|
-| 非门 (NOT) | ¬ | Y = ¬A | 0→1, 1→0 |
-| 与门 (AND) | · | Y = A·B | 00→0,01→0,10→0,11→1 |
-| 或门 (OR) | + | Y = A+B | 00→0,01→1,10→1,11→1 |
-| 异或门 (XOR) | ⊕ | Y = A⊕B | 00→0,01→1,10→1,11→0 |
-| 与非门 (NAND) | ↑ | Y = ¬(A·B) | 00→1,01→1,10→1,11→0 |
-| 或非门 (NOR) | ↓ | Y = ¬(A+B) | 00→1,01→0,10→0,11→0 |
+### 1.1 空间切片思维（核心思维准则）
 
-> NAND 和 NOR 是"通用门"——仅用 NAND 或仅用 NOR 就能实现任何组合逻辑。
+**绝对禁止**采用软件的单线程追踪法（如："确定时刻1的x值，再追踪x在下个时刻如何产生y"）。
 
-### CPU 中常见的组合逻辑组件
+**正确做法**——以设计 ALU 为例：
+1. 压住时间（固定某个时刻），铺开空间
+2. 先聚焦输出 `result`，遍历所有场景（ADD/SUB/AND/OR/XOR/SLL/SRL/SRA/SLT），列出所有可能的表达式
+3. 再聚焦输出 `zero`，遍历所有场景
+4. 最后化解整合为 MUX 选择树
 
-#### 多路复用器 (MUX)
+**记住**：硬件是空间并行的——所有场景的电路在物理上同时存在，不是顺序执行。`case` 语句在综合后展开为 MUX 拓扑，所有分支的硬件都真实存在于硅片上。
+
+### 1.2 多维度通路分离原则
+
+在构思电路拓扑时，**绝对禁止**将所有信号混杂在一起。必须将整体连线网络拆解为职责清晰的独立通路：
+
+| 通路类型 | 位宽特征 | 职责 | 关键关注点 |
+|----------|--------|------|-----------|
+| **数据通路** | 32-bit（最宽） | 核心计算数据承载 | 高吞吐、低延迟、MUX级联 |
+| **地址通路** | 5~32-bit | 寄存器/存储器寻址 | 扇出极高，需预留缓冲 |
+| **参数通路** | 32-bit | 立即数、配置常量 | 变化极低，关注使能与复用 |
+| **控制通路** | 1~7-bit（最小） | 状态机、MUX选择、使能 | 逻辑复杂但位宽小 |
+
+**实例**——单周期处理器通路分离：
+- **数据通路**：PC→I-MEM→regfile(rd1,rd2)→ALU→D-MEM→wd3（核心32-bit数据流）
+- **地址通路**：PC→I-MEM（指令地址）、alu_result→D-MEM（数据地址）、rd_addr→regfile（寄存器编号）
+- **参数通路**：instr→imm_gen→alu_b（立即数）、imm→PC加法器（跳转偏移）
+- **控制通路**：opcode→control_unit→{reg_write, alu_src, mem_write, ...}
+
+通路分离不仅是逻辑清晰，更是物理实现的刚需（地址通路高扇出需独立缓冲树）。
+
+### 1.3 PPA 物理代价意识
+
+逻辑等价不代表物理代价相同。以下规则在设计每个模块时都必须评估：
+
+1. **门级复杂度直觉**：NAND/NOR 是 CMOS 最基本单元；AND/OR 需要额外反相器；XOR/MUX 的晶体管级结构远比基础门复杂
+2. **动态功耗直觉**：无时钟寄存器的 D 端翻转功耗可忽略；时钟翻转功耗才是大头
+3. **扇出警觉**：地址通路单一信号驱动过多下游单元 → 严重线延迟 → 需预留缓冲器（BUFF）
+4. **重汇聚警觉**：同一信号经不同路径后汇合（如 MUX 选择信号与数据信号同源）→ 易产生毛刺
+5. **PPA 评估精度分级**：
+   - **低敏感度**：基于逻辑门数量估算（初期架构探索用）
+   - **中敏感度**：查询工艺库文件获取实际参数
+   - **高敏感度**：综合后在不同时序压力下实测
+
+### 1.4 组合逻辑打平原则
+
+**绝对禁止**盲目保留中间级联结构（如多级 MUX 树），导致面积指数级膨胀。
+
+核心方法：将多级数据面 MUX 网络降维为地址/控制面的组合逻辑计算。数据位宽（32-bit）远大于控制位宽（4-bit），将数据面的级联冗余转化为地址面的代数计算，是压缩面积的根本途径。
+
+## 2. 组合逻辑的宏单元视角
+
+在硬件设计中，所有组合逻辑都对应特定的**宏单元**（物理实体），而非抽象的"代码块"。
+
+### 2.1 逻辑门 → 晶体管级开关网络
+
+| RTL 写法 | 宏单元 | CMOS 实现 |
+|----------|--------|----------|
+| `assign y = ~a;` | NOT（反相器） | 1 PMOS + 1 NMOS |
+| `assign y = ~(a & b);` | NAND（与非门） | 2 PMOS + 2 NMOS（最基础） |
+| `assign y = ~(a \| b);` | NOR（或非门） | 2 PMOS + 2 NMOS（最基础） |
+| `assign y = a & b;` | AND | NAND + NOT（4 管） |
+| `assign y = a \| b;` | OR | NOR + NOT（4 管） |
+| `assign y = a ^ b;` | XOR（异或门） | ~6-8 管（复杂度高） |
+
+> **关键理解**：NAND/NOR 是 CMOS 的"原生"逻辑，AND/OR 需要额外反相器。逻辑等价不代表物理等价。
+
+### 2.2 MUX → 选择器拓扑树
+
 ```verilog
-// 2:1 MUX — 选择两个输入中的一个输出
+// 2-to-1 MUX = 1 级选择（~3 门当量 / bit）
 assign y = sel ? a : b;
 
-// 4:1 MUX
+// 4-to-1 MUX = 2 级级联（~9 门当量 / bit）
+assign y = sel[1] ? (sel[0] ? d : c) : (sel[0] ? b : a);
+```
+
+**MUX 的深度直接影响时序和面积**。`if-else` 和 `case` 在综合后都展开为 MUX 拓扑树，深层嵌套 = 长时序路径。多级 MUX 级联时，应通过代数化解打平为单级宽 MUX。
+
+### 2.3 译码器 (Decoder) → n:2^n 选择网络
+
+```verilog
+// 3:8 Decoder — 7-bit opcode → 10 类指令的 one-hot 使能
 always @(*) begin
-    case (sel)
-        2'b00: y = a;
-        2'b01: y = b;
-        2'b10: y = c;
-        2'b11: y = d;
-    endcase
-end
-```
-在 CPU 中无处不在：ALU 输入选择、寄存器写回数据选择、PC 下一值选择等。
-
-#### 译码器 (Decoder)
-```verilog
-// 3:8 译码器 — n位输入 → 2^n位输出（one-hot）
-always @(*) begin
-    y = 8'b0;
-    y[sel] = 1'b1;
-end
-```
-在 CPU 中用于：指令译码（opcode → 各指令类别的 one-hot 使能信号）。
-
-#### 加法器 (Adder)
-```verilog
-// 32位全加器（综合工具会自动优化）
-assign sum = a + b;
-assign {carry_out, sum} = a + b + carry_in;  // 带进位
-```
-在 CPU 中用于：ALU、PC+4、分支目标地址计算。
-
-#### 移位器 (Shifter)
-```verilog
-// 桶形移位器
-assign y = a << shamt;   // 逻辑左移
-assign y = a >> shamt;   // 逻辑右移
-assign y = $signed(a) >>> shamt;  // 算术右移
-```
-
-#### ALU — 所有运算的组合
-```verilog
-// 简化的 ALU
-always @(*) begin
-    case (alu_control)
-        4'b0000: result = a + b;          // ADD
-        4'b0001: result = a - b;          // SUB
-        4'b0010: result = a & b;          // AND
-        4'b0011: result = a | b;          // OR
-        4'b0100: result = a ^ b;          // XOR
-        4'b0101: result = a << b[4:0];    // SLL
-        4'b0110: result = a >> b[4:0];    // SRL
-        4'b0111: result = $signed(a) >>> b[4:0]; // SRA
-        4'b1000: result = ($signed(a) < $signed(b)) ? 1 : 0; // SLT
-        default: result = 32'b0;
+    case (opcode)
+        7'b0110011: {reg_write, ...} = ...;  // R-type
+        7'b0010011: {reg_write, ...} = ...;  // I-type ALU
+        ...
     endcase
 end
 ```
 
-## 3. 时序逻辑
+在 CPU 中，控制单元的译码器是面积最小的组合逻辑之一（~80 门当量），但却是整个数据通路的"指挥中心"。
 
-### D 触发器 (D Flip-Flop)
+### 2.4 加法器 → 进位链
+
 ```verilog
-// 上升沿触发的 D 触发器
-always @(posedge clk) begin
-    q <= d;  // <= 是非阻塞赋值，用于时序逻辑
-end
+assign sum = a + b;  // 综合为行波进位链或超前进位链
+```
 
-// 带同步复位的 D 触发器
-always @(posedge clk) begin
-    if (rst)
+32-bit Adder 是 ALU 的关键路径瓶颈（~10 级逻辑深度），面积约 200 门当量。
+
+## 3. 时序逻辑的宏单元视角
+
+### 3.1 DFF → 边沿触发的物理寄存器
+
+```verilog
+// 带异步复位的 DFF
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n)
         q <= 0;
     else
         q <= d;
 end
 ```
 
-### 寄存器 (Register)
-```verilog
-// 32位寄存器（带写使能）
-always @(posedge clk) begin
-    if (rst)
-        reg_data <= 32'b0;
-    else if (write_en)
-        reg_data <= write_data;
-end
+DFF 是时序逻辑的唯一状态存储单元。32 个 DFF 构成 PC，1024 个 DFF 构成寄存器文件。
+
+**功耗重点**：时钟翻转是 DFF 功耗的大头（每次 CK 跳变都充放电），D 端翻转的内部节点功耗可忽略。
+
+### 3.2 寄存器文件 → DFF 阵列 + 译码器 + MUX 网络
+
+寄存器文件不是简单的"数组"，而是：
+- **地址通路**：5:32 译码器 → 32 根字线（扇出极大，需缓冲树）
+- **读通路**：32-to-1 MUX × 2（5 级级联，关键路径）
+- **写通路**：5:32 译码器 + 写使能门控
+- **时序**：读 = 组合逻辑（零延迟），写 = posedge clk
+
+### 3.3 FSM → DFF + 译码器 + MUX
+
+```
+状态机 = DFF（状态寄存器）         ← 存储当前状态
+       + 译码器（次态逻辑）         ← 组合逻辑：当前状态+输入→下一状态
+       + MUX（输出逻辑）           ← 组合逻辑：状态→输出信号
 ```
 
-### 寄存器文件 (Register File)
-32个寄存器的集合体——CPU 的核心存储结构。
-```verilog
-// 寄存器文件（简化版）
-reg [31:0] rf [31:0];  // 32个32-bit寄存器
+## 4. 设计流程：从需求到 HDL
 
-always @(posedge clk) begin
-    if (we3 && (a3 != 5'b0))  // x0 永远为 0，不可写
-        rf[a3] <= wd3;
-end
+遵循 rtl_design_rule.md 的强制工作流：
 
-assign rd1 = (a1 == 5'b0) ? 32'b0 : rf[a1];  // 读x0返回0
-assign rd2 = (a2 == 5'b0) ? 32'b0 : rf[a2];
+```
+需求分解 → 电路拓扑设计 → 宏单元映射与 PPA 评估 → HDL 编码
 ```
 
-### 有限状态机 (FSM)
-```verilog
-// Moore 型状态机
-localparam IDLE = 2'b00, FETCH = 2'b01, EXEC = 2'b10, WB = 2'b11;
+### 步骤 1：需求分解
+明确输入输出端口、时序约束和功能目标。用表格列举所有端口。
 
-reg [1:0] state, next_state;
+### 步骤 2：电路拓扑设计
+使用宏单元词典描述电路架构：
+- **区分数据、地址、参数、控制四通路**
+- 明确各节点的扇入扇出关系
+- 画出宏单元间的连线拓扑图（文字描述即可）
 
-// 状态寄存器
-always @(posedge clk) begin
-    if (rst)
-        state <= IDLE;
-    else
-        state <= next_state;
-end
+### 步骤 3：宏单元映射与 PPA 评估
+显式列出需要例化的宏单元，评估 PPA 代价，标注互联关系中的高扇出与重汇聚点。
 
-// 下一状态逻辑（组合）
-always @(*) begin
-    case (state)
-        IDLE:  next_state = FETCH;
-        FETCH: next_state = EXEC;
-        EXEC:  next_state = WB;
-        WB:    next_state = FETCH;
-        default: next_state = IDLE;
-    endcase
-end
+### 步骤 4：HDL 编码
+严格依据步骤 2、3 的电路结构编写 RTL。代码中注释应反映电路拓扑。
 
-// 输出逻辑（组合）
-always @(*) begin
-    // 根据 state 产生控制信号
-end
-```
+> **示例**：打开 `rtl/core/alu.v` 查看按此流程编写的 ALU 模块。
 
-## 4. Verilog 基础速成
+## 5. 下一步
 
-### 模块声明
-```verilog
-module module_name #(
-    parameter WIDTH = 32          // 参数（可重写）
-) (
-    input  wire             clk,    // 时钟
-    input  wire             rst_n,  // 复位（低有效）
-    input  wire [WIDTH-1:0] data_in,
-    output reg  [WIDTH-1:0] data_out
-);
-    // 模块体
-endmodule
-```
-
-### 关键语法
-```verilog
-// 连续赋值（组合逻辑）
-assign y = a & b;
-
-// always块（组合逻辑 — 用 = 阻塞赋值）
-always @(*) begin
-    y = a & b;
-end
-
-// always块（时序逻辑 — 用 <= 非阻塞赋值）
-always @(posedge clk) begin
-    q <= d;
-end
-
-// 位拼接
-assign {carry, sum} = a + b;          // carry 1bit, sum 32bit
-assign sign_ext = {{16{imm[15]}}, imm[15:0]};  // 符号扩展
-
-// 常量
-assign x = 32'hDEAD_BEEF;  // 十六进制
-assign x = 32'b1010;       // 二进制
-assign x = 10'd42;         // 十进制
-```
-
-### 阻塞 vs 非阻塞赋值
-| | = (阻塞) | <= (非阻塞) |
-|---|---------|------------|
-| 用于 | 组合逻辑 (always @(*)) | 时序逻辑 (always @(posedge clk)) |
-| 行为 | 立即生效，顺序执行 | 所有RHS先求值，再同时更新LHS |
-| 理解 | 像软件编程 | 像硬件并行 |
-
-**规则**：
-- 组合逻辑：仅用 `=`
-- 时序逻辑：仅用 `<=`
-- **永远不要在一个 always 块中混用 `=` 和 `<=`**
-
-## 5. 验证与仿真
-
-### Testbench 基本结构
-```verilog
-`timescale 1ns / 1ps    // 时间单位 / 时间精度
-
-module tb_example;
-    // 输入声明为 reg（testbench 驱动）
-    reg       clk;
-    reg       rst_n;
-    reg [3:0] a, b;
-    
-    // 输出声明为 wire（testbench 观测）
-    wire [4:0] sum;
-    
-    // 实例化 DUT (Device Under Test)
-    adder #(.WIDTH(4)) dut (
-        .clk(clk),
-        .rst_n(rst_n),
-        .a(a),
-        .b(b),
-        .sum(sum)
-    );
-    
-    // 时钟生成
-    initial clk = 0;
-    always #5 clk = ~clk;  // 周期 10ns = 100MHz
-    
-    // 测试向量
-    initial begin
-        // VCD 波形输出
-        $dumpfile("tb_example.vcd");
-        $dumpvars(0, tb_example);
-        
-        // 复位
-        rst_n = 0;
-        #20 rst_n = 1;
-        
-        // 测试用例
-        a = 3; b = 5;
-        #10;
-        $display("3 + 5 = %d", sum);  // 打印结果
-        
-        a = 7; b = 8;
-        #10;
-        $display("7 + 8 = %d", sum);
-        
-        $finish;  // 结束仿真
-    end
-endmodule
-```
-
-### 仿真命令（Icarus Verilog）
-```bash
-# 编译
-iverilog -o tb_example.vvp tb_example.v adder.v
-
-# 运行
-vvp tb_example.vvp
-
-# 查看波形
-gtkwave tb_example.vcd
-```
-
-## 6. CPU 设计师需要的思维方式
-
-### 硬件思维 vs 软件思维
-
-| 软件思维 | 硬件思维 |
-|----------|----------|
-| 顺序执行 | 一切并行执行 |
-| 函数调用 | 信号连接（连线） |
-| 变量 | 寄存器 + 导线 |
-| for 循环 | 展开为并行硬件或状态机 |
-| if/else | MUX 或优先级编码器 |
-| 内存分配 | 选择器 + 存储单元 |
-
-### 组合逻辑的陷阱
-- **不完整敏感列表**：`always @(a)` 遗漏了 `b` → 用 `always @(*)`
-- **组合环路**：输出反馈回输入形成环路 → 震荡
-- **信号竞争**：同一信号在多处驱动 → 用 `assign` 或 `always @(*)`，别混用
-
-### 时序逻辑的陷阱
-- **亚稳态**：异步输入违反 setup/hold 时间 → 用同步器（两级 FF）
-- **时钟域跨越**：不同时钟域信号直接通信 → 用 FIFO 或握手协议
-- **阻塞赋值用于时序**：导致仿真与实际硬件行为不一致
-
-## 7. 下一步
-
-掌握了组合逻辑和时序逻辑的建模方法后，进入 [阶段三：CPU 微架构](03-microarchitecture.md)，将这些组件拼成一台完整的处理器。
+掌握了硬件思维和宏单元视角后，进入 [阶段三：CPU 微架构](03-microarchitecture.md)，学习如何使用宏单元搭建完整的处理器数据通路。

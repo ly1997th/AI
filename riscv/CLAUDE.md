@@ -11,6 +11,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 学习笔记在 `notes/` 中，参考资料在 `refs/` 中，RTL 实现在 `rtl/` 中，C 程序在 `sw/` 中。
 
+**强制设计方法论**：本项目严格遵循 `refs/rtl_design_rule.md` 的硬件优先原则。
+所有 RTL 开发必须遵循 **电路架构 → 宏单元映射与PPA评估 → RTL代码** 三段式工作流。
+
 ## 常用命令
 
 ### C 语言交叉编译（RISC-V 裸机程序）
@@ -153,14 +156,40 @@ soc_top.v (SoC 顶层)
 | Branch | 分支指令标志 | control_unit |
 | ALUOp | ALU 操作码 | control_unit |
 
-## 项目约定
+## 设计方法论（强制）
+
+本项目严格遵循 [refs/rtl_design_rule.md](refs/rtl_design_rule.md) 中定义的 IC 逻辑设计规范。
+
+### 强制工作流（修改任何 RTL 模块前必须执行）
+
+1. **需求分解** — 明确输入输出端口、时序约束和功能目标
+2. **电路拓扑设计** — 使用宏单元词典（DFF/MUX/Decoder/Adder等）描述电路架构，**必须区分数据通路、地址通路、参数通路与控制通路**，明确各节点扇入扇出关系
+3. **宏单元映射与PPA评估** — 显式列出宏单元及互连关系，标注高扇出与重汇聚点，评估PPA代价（标注精度分级：低/中/高敏感度）
+4. **HDL代码实现** — 严格依据第2、3步的电路结构编写RTL
+
+### 核心思维准则
+
+| 准则 | 内容 | 反例 |
+|------|------|------|
+| **空间切片** | 压住时间，铺开空间，罗列所有场景再化解 | 单线程追踪变量在不同时刻的值 |
+| **通路分离** | 将电路拆解为数据/地址/参数/控制四通路 | 所有信号混杂黑盒描述 |
+| **PPA意识** | NAND/NOR最基础，AND/OR需额外反相器，MUX远贵于门 | 视逻辑等价为物理等价 |
+| **扇出警觉** | 地址通路高扇出 → 预留缓冲树；重汇聚 → 防毛刺 | 忽略信号负载与线延迟 |
+| **组合打平** | 多级MUX树降维为地址面代数计算，数据面仅留末级 | 保留级联冗余致面积膨胀 |
+
+### HDL编码准则（电路映射）
+- `if-else` / `case` = **MUX拓扑**（避免深层嵌套防长时序路径）
+- `=` = **组合逻辑**（连续赋值或组合逻辑块阻塞赋值）
+- `<=` = **时序逻辑DFF**（时序逻辑块非阻塞赋值）
+- FSM = **DFF（状态寄存器） + 译码器（次态逻辑） + MUX（输出逻辑）**
+- 条件赋值 = **ICG拓扑（时钟使能）** 或 **带反馈的MUX（数据使能）**
 
 ### Verilog 编码规范
 - 模块名使用小写+下划线（`control_unit`, `reg_file`）
 - 信号名使用小写+下划线（`alu_result`, `reg_write_data`）
 - 参数使用大写+下划线（`DATA_WIDTH`, `ADDR_WIDTH`）
 - 每个模块一个文件，文件名 = 模块名 + `.v`
-- 组合逻辑用 `assign`，时序逻辑用 `always @(posedge clk)`
+- 每个模块的文件头必须包含 **电路架构→宏单元映射与PPA评估→RTL代码** 三段注释
 
 ### 文件组织
 - `sw/` — C 语言测试程序（裸机，无 OS 依赖）
@@ -173,20 +202,21 @@ soc_top.v (SoC 顶层)
 - `tools/elf2hex.py` — ELF → hex 转换工具
 - 仿真产物（`.vcd`, `.vvp`）在 `sim/` 目录，由 `.gitignore` 忽略
 
-### 开发流程
-1. 先阅读对应阶段的笔记（`notes/`）
-2. 查看参考资料（`refs/`）获取详细规格
-3. **编写 C 程序并用交叉编译器生成 RISC-V 指令**（`sw/` 目录）
-4. 编写/修改 RTL 模块（`rtl/core/`）
-5. 编写 testbench 验证模块行为（`sim/tb/`）
-6. **将 C 编译生成的 hex 文件加载到 testbench 的 memory 中**
+### 开发流程（完整链路）
+1. 阅读对应阶段的笔记（`notes/`），理解微架构概念
+2. 查阅 [refs/rtl_design_rule.md](refs/rtl_design_rule.md) 确认设计方法论
+3. **电路拓扑设计**：按四维通路分离原则画出宏单元拓扑（可用文字描述）
+4. **编写 C 程序 + 交叉编译生成 RISC-V 指令**（`sw/` 目录）作为测试向量
+5. 编写/修改 RTL 模块（`rtl/core/`），严格按三段式结构（电路架构→PPA→代码）
+6. 编写 testbench 验证模块行为（`sim/tb/`）
 7. `cd sim && make run_tb_<module>` 运行仿真
 8. `make wave_tb_<module>` 查看波形调试
 
 ## 关键参考文件
 
+- [refs/rtl_design_rule.md](refs/rtl_design_rule.md) — **IC逻辑设计规范（强制阅读）**
 - [refs/instructions-reference.md](refs/instructions-reference.md) — 全部 RV32I 指令编码速查表
-- [refs/riscv-spec-summary.md](refs/riscv-spec-summary.md) — RISC-V 规范核心摘要
 - [refs/links.md](refs/links.md) — 外部学习资源
 - [notes/01-isa-basics.md](notes/01-isa-basics.md) — ISA 基础笔记
-- [notes/03-microarchitecture.md](notes/03-microarchitecture.md) — 微架构详细设计
+- [notes/02-digital-logic.md](notes/02-digital-logic.md) — 数字逻辑与硬件思维
+- [notes/03-microarchitecture.md](notes/03-microarchitecture.md) — 微架构（四维通路分离 + 宏单元映射）

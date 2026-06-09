@@ -2,6 +2,8 @@
 
 基于 RISC-V ISA 学习 CPU 基础知识的系统性学习项目。从指令集架构入门，到使用 Verilog 实现一个可运行 RV32I 指令的单周期处理器。
 
+> **核心方法论**：严格遵循"先有电路，再写代码"的硬件优先原则。所有 RTL 模块采用 **电路架构 → 宏单元映射与PPA评估 → RTL代码** 三段式结构。详见 [refs/rtl_design_rule.md](refs/rtl_design_rule.md)。
+
 ## 学习路线图
 
 ```
@@ -14,9 +16,10 @@
 - 📖 笔记：[notes/01-isa-basics.md](notes/01-isa-basics.md)
 - 📋 速查：[refs/instructions-reference.md](refs/instructions-reference.md)
 
-### 阶段二：数字逻辑基础
-理解组合逻辑、时序逻辑、状态机，掌握 Verilog 硬件描述语言基础。
+### 阶段二：数字逻辑与硬件思维
+理解组合/时序逻辑的宏单元视角，掌握**空间切片、四维通路分离、PPA意识**等核心硬件思维。
 - 📖 笔记：[notes/02-digital-logic.md](notes/02-digital-logic.md)
+- 📐 设计规范：[refs/rtl_design_rule.md](refs/rtl_design_rule.md)
 
 ### 阶段三：CPU 微架构
 理解数据通路与控制通路，掌握单周期处理器五级流水设计。
@@ -96,7 +99,10 @@ make wave_tb_core   # 查看波形
 ```
 riscv/
 ├── notes/              # 学习笔记（按阶段编排）
-├── refs/               # 参考资料与速查表
+├── refs/               # 参考资料与设计规范
+│   ├── rtl_design_rule.md    # **IC逻辑设计规范（必读）**
+│   ├── instructions-reference.md  # RV32I 指令集速查表
+│   └── links.md               # 外部学习资源
 ├── sw/                 # C 语言测试程序
 │   ├── hello.c         # 裸机 Hello World
 │   ├── fibonacci.c     # 斐波那契计算

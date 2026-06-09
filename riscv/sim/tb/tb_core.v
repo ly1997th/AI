@@ -93,7 +93,7 @@ module tb_core;
         mem[1] = 32'h00300113;   // 0x004: addi x2, x0, 3   (rd=x2=00010, rs1=x0=00000, imm=3)
         mem[2] = 32'h002081b3;   // 0x008: add  x3, x1, x2  (rd=x3=00011, rs1=x1=00001, rs2=x2=00010, funct3=000, funct7=0000000)
         mem[3] = 32'h40208233;   // 0x00c: sub  x4, x1, x2  (rd=x4=00100, funct7=0100000)
-        mem[4] = 32'h00318263;   // 0x010: beq  x3, x3, +8  (rs1=x3=00011, rs2=x3=00011, offset=8)
+        mem[4] = 32'h00318463;   // 0x010: beq  x3, x3, +8 (offset=8 bytes, skip 2 instrs to 0x18)
         mem[5] = 32'h06300293;   // 0x014: addi x5, x0, 99  (不应执行)
         mem[6] = 32'h02a00313;   // 0x018: addi x6, x0, 42  (期望执行)
 

@@ -155,7 +155,92 @@ B-type 的立即数位故意不连续是为了简化硬件：所有指令格式�
 | JAL rd, offset | rd = PC+4; PC += offset |
 | JALR rd, rs1, offset | rd = PC+4; PC = rs1 + offset |
 
-## 6. 汇编语言示例
+### 系统指令
+| 指令 | 格式 | 功能 |
+|------|------|------|
+| ECALL | I | 环境调用（系统调用），触发异常切换到更高特权级 |
+| EBREAK | I | 断点异常，用于调试器 |
+| FENCE | I | 内存访问顺序保证（多核/IO 同步） |
+| FENCE.I | I | 指令缓存同步 |
+| CSRRW/CSRRS/CSRRC | I | CSR 读写操作（本项目暂不实现） |
+
+> 本项目当前实现**不包括** ECALL/EBREAK/CSR 指令（这些需要异常处理机制）。 `FENCE` 和 `FENCE.I` 在单核简单系统中可视为 NOP。
+
+## 6. 机器码手工汇编练习
+
+> **本节至关重要**：testbench 中发现的 bug 正是源自 B-type 立即数编码的计算错误。动手算一遍就不会再犯同样的错误。
+
+### 练习 1：ADDI
+```
+addi x5, x0, 99
+  I-type: opcode=0010011, funct3=000
+  rd=x5=00101, rs1=x0=00000
+  imm=99=0x063=000001100011
+
+  编码: imm[11:0]=000001100011, rs1=00000, funct3=000, rd=00101, opcode=0010011
+  = 0000_0110_0011_0000_0000_0010_1001_0011
+  = 0x06300293 ✓
+```
+
+### 练习 2：ADD
+```
+add x3, x1, x2
+  R-type: opcode=0110011, funct3=000, funct7=0000000
+  rd=x3=00011, rs1=x1=00001, rs2=x2=00010
+
+  编码: funct7=0000000, rs2=00010, rs1=00001, funct3=000, rd=00011, opcode=0110011
+  = 0000000_00010_00001_000_00011_0110011
+  = 0x002081B3 ✓
+```
+
+### 练习 3：BEQ（**重点！B-type 立即数易错**）
+```
+beq x3, x3, +8      # PC=0x04, 目标=PC+8=0x0C（跳过 2 条指令）
+  B-type: opcode=1100011, funct3=000 (BEQ)
+  rs1=x3=00011, rs2=x3=00011
+  offset=8 bytes = 0b0000_0000_1000
+
+B-type 立即数位映射（offset 隐式最低位恒为 0）：
+  imm[12]=0      → instr[31]=0
+  imm[11]=0      → instr[7]=0
+  imm[10:5]=0    → instr[30:25]=000000
+  imm[4:1]=4     → instr[11:8]=0100   ← 关键！offset=8 → imm[4:1]=4, 不是 2!
+  imm[0]=(隐式0)
+
+  编码: 0_000000_00011_00011_000_0100_0_1100011
+  = 0x00318463 ✓
+
+  常见错误: 0x00318263 (imm[4:1]=2, offset=4) → 只跳 1 条指令！
+```
+
+### 练习 4：JAL
+```
+jal ra, +12         # PC=0x00, 目标=0x0C, 保存返回地址到 ra(x1)
+  J-type: opcode=1101111
+  rd=x1=00001
+  offset=12 = 0b0000_0000_1100
+
+J-type 立即数位映射：
+  imm[20]=0     → instr[31]=0
+  imm[19:12]=0  → instr[19:12]=00000000
+  imm[11]=0     → instr[20]=0
+  imm[10:1]=6   → instr[30:21]=0000000110  (12>>1=6)
+  imm[0]=(隐式0)
+
+  编码: 0_0000000110_0_00000000_00001_1101111
+  = 0x00C000EF ✓
+```
+
+### 手工汇编快速自检表
+
+| 错误 | 症状 | 纠正 |
+|------|------|------|
+| B-type 忘了隐式 LSB=0 | offset 减半 | `imm[4:1] = offset[5:2]`，不是 `offset[3:0]` |
+| J-type 忘了隐式 LSB=0 | 跳转距离减半 | `imm[10:1] = offset[11:1]` |
+| S-type 拼接顺序错 | 地址计算错误 | `{imm[11:5], imm[4:0]} = offset[11:0]` |
+| U-type 忘记左移 12 | 立即数错误 | `imm[31:12] << 12` |
+
+## 7. 汇编语言示例
 
 ```asm
 # 简单的加法
@@ -170,17 +255,21 @@ addi t2, zero, 10     # limit = 10
 loop:
     add  t0, t0, t1   # sum += i
     addi t1, t1, 1    # i++
-    ble  t1, t2, loop # if i <= 10, goto loop
+    blt  t1, t2, loop # if i < 10, goto loop（i=10 时退出）
+
+    # 注意：RV32I 没有 "ble" 指令！
+    # ble rs1, rs2 是伪指令，等价于 bge rs2, rs1
+    # 本项目暂不实现伪指令，始终使用真实 RISC-V 指令
 
 # 函数调用
 jal  ra, my_func      # 跳转到 my_func，保存返回地址到 ra
 # ... 函数返回时用 jalr zero, ra, 0
 ```
 
-## 7. 下一步
+## 8. 下一步
 
 完成本章学习后：
-1. 熟记六种指令格式的位布局
-2. 能看懂简单的 RISC-V 汇编代码
-3. 尝试手写几条汇编指令并手工汇编为机器码
-4. 进入 [阶段二：数字逻辑基础](02-digital-logic.md)
+1. 熟记六种指令格式的位布局（对照 [refs/instructions-reference.md](../refs/instructions-reference.md)）
+2. **亲手算 3-5 条指令的机器码**（特别是 B-type，最容易出错！见 [refs/riscv-spec-summary.md](../refs/riscv-spec-summary.md) 第3节）
+3. 能看懂简单的 RISC-V 汇编代码，打开 [sw/](../sw/) 观察 C→汇编 的编译结果
+4. 进入 [阶段二：数字逻辑与硬件思维](02-digital-logic.md)
