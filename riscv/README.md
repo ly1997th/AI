@@ -55,19 +55,40 @@ bash tools/setup.sh
 
 ## 快速开始
 
+### 方式一：C 语言编程 + Verilog 仿真（推荐）
+
 ```bash
-# 1. 编译所有 RTL 模块
-cd sim
-make
+# 1. 编写 C 程序并编译为 RISC-V 裸机程序
+cd sw
+make              # 编译所有 C 程序
+make dis          # 查看反汇编（理解 C→汇编→机器码的过程）
 
-# 2. 运行 ALU 单元测试
-make run_tb_alu
+# 2. 回到仿真目录
+cd ../sim
+make run_tb_alu       # ALU 单元测试
+make run_tb_core      # 完整处理器测试（加载 sw 中的 hex 程序）
 
-# 3. 运行完整处理器测试
-make run_tb_core
-
-# 4. 查看波形
+# 3. 查看波形
 make wave_tb_core
+```
+
+**完整工作流：C 源码 → RISC-V 机器码 → 处理器仿真**
+
+```
+sw/hello.c ──→ riscv-gcc ──→ hello.elf ──→ objcopy+elf2hex.py ──→ hello.hex
+                                                                        │
+                                                                        v
+                                                          rtl/*.v ──→ iverilog ──→ 仿真波形
+```
+
+### 方式二：Verilog 仿真（手写汇编/机器码）
+
+```bash
+cd sim
+make                # 编译所有模块
+make run_tb_alu     # 运行 ALU 单元测试
+make run_tb_core    # 运行完整处理器测试
+make wave_tb_core   # 查看波形
 ```
 
 ## 项目结构
@@ -76,6 +97,12 @@ make wave_tb_core
 riscv/
 ├── notes/              # 学习笔记（按阶段编排）
 ├── refs/               # 参考资料与速查表
+├── sw/                 # C 语言测试程序
+│   ├── hello.c         # 裸机 Hello World
+│   ├── fibonacci.c     # 斐波那契计算
+│   ├── add_test.c      # 算术运算测试
+│   ├── startup.s       # 启动代码（CRT0）
+│   └── link.ld         # 链接脚本
 ├── rtl/                # RTL 设计源码
 │   ├── core/           # 处理器核心模块
 │   └── soc/            # SoC 集成
@@ -83,6 +110,9 @@ riscv/
 │   ├── tb/             # Testbench
 │   └── asm/            # 测试汇编程序
 └── tools/              # 环境配置与辅助脚本
+    ├── setup.sh / setup.ps1   # 环境配置脚本
+    ├── Makefile               # 仿真自动化
+    └── elf2hex.py             # ELF → Verilog hex 转换
 ```
 
 ## 参考资源

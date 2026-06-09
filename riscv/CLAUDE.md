@@ -9,9 +9,59 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 2. 用 Verilog 实现一个单周期 RISC-V 处理器
 3. 通过仿真验证处理器正确性
 
-学习笔记在 `notes/` 中，参考资料在 `refs/` 中，RTL 实现在 `rtl/` 中。
+学习笔记在 `notes/` 中，参考资料在 `refs/` 中，RTL 实现在 `rtl/` 中，C 程序在 `sw/` 中。
 
 ## 常用命令
+
+### C 语言交叉编译（RISC-V 裸机程序）
+
+```bash
+# 编译所有 C 程序并生成反汇编和 hex
+cd sw && make
+
+# 单独编译某个程序
+cd sw && make hello        # hello world
+cd sw && make fibonacci    # 斐波那契
+cd sw && make add_test     # 算术测试
+
+# 查看反汇编（理解 C 如何编译为 RISC-V 指令）
+cd sw && make dis
+
+# 提取 ELF 中的机器码为 Verilog hex 格式
+cd sw && make hex
+
+# 清理编译产物
+cd sw && make clean
+```
+
+**C → RISC-V 完整编译流程：**
+
+```
+C 源码 (*.c)                GCC 交叉编译              ELF 可执行文件
+    +                         ───────────>              (*.elf)
+启动代码 (startup.s)
+    +
+链接脚本 (link.ld)
+
+    ELF                         objcopy                   Hex 文件
+  (*.elf)          ───────────>   elf2hex.py    ───────────>  (*.hex)
+                                      │
+                                      └── 加载到 Verilog 存储器仿真
+```
+
+**手动编译单个程序：**
+
+```bash
+# 1. 编译 C + 汇编 → ELF
+riscv64-unknown-elf-gcc -march=rv32i -mabi=ilp32 -nostdlib -T sw/link.ld \
+    sw/startup.s sw/hello.c -o hello.elf
+
+# 2. 反汇编（查看生成的 RISC-V 指令）
+riscv64-unknown-elf-objdump -d hello.elf
+
+# 3. 提取机器码为 hex（供 Verilog $readmemh 使用）
+python3 tools/elf2hex.py hello.elf hello.hex
+```
 
 ### 仿真（使用 Icarus Verilog + GTKWave）
 
@@ -113,19 +163,25 @@ soc_top.v (SoC 顶层)
 - 组合逻辑用 `assign`，时序逻辑用 `always @(posedge clk)`
 
 ### 文件组织
+- `sw/` — C 语言测试程序（裸机，无 OS 依赖）
+- `sw/link.ld` — 链接脚本（定义内存布局）
+- `sw/startup.s` — 启动代码（设置栈、清零 BSS、调 main）
 - `rtl/core/` — 处理器核心模块（可综合）
 - `rtl/soc/` — SoC 集成层（顶层 + 存储器）
 - `sim/tb/` — Testbench（不可综合，仅仿真用）
 - `sim/asm/` — RISC-V 汇编测试程序
+- `tools/elf2hex.py` — ELF → hex 转换工具
 - 仿真产物（`.vcd`, `.vvp`）在 `sim/` 目录，由 `.gitignore` 忽略
 
 ### 开发流程
 1. 先阅读对应阶段的笔记（`notes/`）
 2. 查看参考资料（`refs/`）获取详细规格
-3. 编写/修改 RTL 模块（`rtl/core/`）
-4. 编写 testbench 验证模块行为（`sim/tb/`）
-5. `cd sim && make run_tb_<module>` 运行仿真
-6. `make wave_tb_<module>` 查看波形调试
+3. **编写 C 程序并用交叉编译器生成 RISC-V 指令**（`sw/` 目录）
+4. 编写/修改 RTL 模块（`rtl/core/`）
+5. 编写 testbench 验证模块行为（`sim/tb/`）
+6. **将 C 编译生成的 hex 文件加载到 testbench 的 memory 中**
+7. `cd sim && make run_tb_<module>` 运行仿真
+8. `make wave_tb_<module>` 查看波形调试
 
 ## 关键参考文件
 
