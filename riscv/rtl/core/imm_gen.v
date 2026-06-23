@@ -1,90 +1,101 @@
 //==============================================================================
-// imm_gen.v — 立即数生成器 (Immediate Generator)
+// imm_gen.v — Immediate Generator
 //==============================================================================
 //
-// 【电路架构】
-// ┌──────────────────────────────────────────────────────────────┐
-// │  功能：从 32-bit 指令中提取立即数字段，符号扩展至 32-bit。       │
-// │                                                              │
-// │  数据通路（无运算，纯连线重组 + MUX 选择）：                     │
-// │                                                              │
-// │    instr[31:0] ─┬─→ I-type 连线重排 ─┐                       │
-// │                 ├─→ S-type 连线重排 ─┤                       │
-// │                 ├─→ B-type 连线重排 ─┤                       │
-// │                 ├─→ U-type 连线重排 ─┤                       │
-// │                 ├─→ J-type 连线重排 ─┤                       │
-// │                 └─→ default (零)  ──┤                       │
-// │                                     ├─→ [6-to-1 MUX] ──→ imm│
-// │                                     │        ↑              │
-// │  控制通路（7-bit opcode）：          opcode[6:0]              │
-// │    opcode ──→ 6-to-1 MUX 选择信号                             │
-// │                                                              │
-// │  路径分离分析：                                                │
-// │    - 数据通路：32-bit 纯组合连线重排，零逻辑门延迟               │
-// │    - 控制通路：opcode 7-bit → MUX select（扇出=1，极小）        │
-// │    - 无重汇聚风险（各类型立即数位字段在 instr 中无重叠运算）      │
-// │    - 关键路径：仅1级MUX延迟，是本设计中最短的组合路径之一         │
-// └──────────────────────────────────────────────────────────────┘
+// 【Circuit Architecture】
+//   Function: Extract and sign-extend the immediate field from a 32-bit instruction.
 //
-// 【宏单元映射与PPA评估】
-// ┌──────────────────────────────────────────────────────────────┐
-// │  宏单元清单：                                                  │
-// │    · 6× 连线重排块（位拼接，纯布线，0 门）                       │
-// │    · 1× 6-to-1 32-bit MUX（唯一有源单元）                      │
-// │                                                              │
-// │  互联关系：                                                    │
-// │    · instr → 6个连线重排块（扇出=6，位宽32，纯扇出无逻辑缓冲）    │
-// │    · opcode → MUX 选择端（扇出=1，7-bit）                      │
-// │    · 6个重排块 → MUX 数据输入端（扇入=6）                        │
-// │                                                              │
-// │  PPA评估（精度分级：低敏感度—基于逻辑分析）：                     │
-// │    · 面积：1× 6-to-1 32-bit MUX ≈ 160门当量（轻量级）          │
-// │    · 时序：仅1级MUX延迟（~0.1ns 量级），非关键路径               │
-// │    · 功耗：极低（仅MUX内部节点翻转，无时钟相关功耗）              │
-// │    · 优化方向：面积已近最优，6种立即数格式是RV32I的固有复杂度     │
-// └──────────────────────────────────────────────────────────────┘
+//   Data Path (pure wiring reorder + MUX, zero logic gates):
+//     instr[31:0] ─┬─→ I-type wire reorder ─┐
+//                  ├─→ S-type wire reorder ─┤
+//                  ├─→ B-type wire reorder ─┤
+//                  ├─→ U-type wire reorder ─┤
+//                  ├─→ J-type wire reorder ─┤
+//                  └─→ default (zero) ──────┤
+//                                           ├─→ [6-to-1 MUX] → imm_dat
+//                                           │        ↑
+//   Control Path (7-bit opcode):         opcode[6:0]
+//     opcode → 6-to-1 MUX select
 //
-// 【RTL代码】
+//   Path Separation:
+//     Data path: 32-bit pure wire reorder, zero gate delay
+//     Control path: opcode 7-bit → MUX select (fanout=1)
+//     No reconvergence risk (immediates from non-overlapping instr fields)
+//     Critical path: single MUX stage (shortest combinational path in the design)
+//
+// 【Macro Mapping & PPA】
+//   Macros:
+//     6× wire reorder blocks (bit concatenation, pure wiring, zero gates)
+//     1× 6-to-1 32-bit MUX (the sole active unit)
+//
+//   Interconnect:
+//     instr → 6 reorder blocks (fanout=6, width=32, pure fanout, no logic)
+//     opcode → MUX select (fanout=1, 7-bit)
+//
+//   PPA (precision: low — logic analysis):
+//     Area: 1× 6-to-1 32-bit MUX ≈ 160 gate equiv (lightweight)
+//     Timing: single MUX stage (~0.1ns scale), non-critical path
+//     Power: minimal (only MUX internal node toggling, zero clock-related power)
+//
+// 【RTL Code】
 //==============================================================================
 
-module imm_gen (
-    input  wire [31:0] instr,   // 指令机器码
-    output reg  [31:0] imm      // 符号扩展后的 32-bit 立即数
+module imm_gen
+(
+  input  wire [31:0] instr,
+  output reg  [31:0] imm_dat
 );
 
-    // opcode 提取（控制通路的"译码"输入）
-    wire [6:0] opcode = instr[6:0];
+  // opcode extraction (control path input to the "decoder")
+  wire [6:0] opcode = instr[6:0];
 
-    // 6-to-1 32-bit MUX：按 opcode 选择立即数格式
-    // 每种格式是纯连线重排（位拼接），无额外逻辑门
-    always @(*) begin
-        case (opcode)
-            // I-type:  imm = {{20{instr[31]}}, instr[31:20]}
-            7'b0010011,   // I-type ALU (addi, slti, etc.)
-            7'b0000011,   // Load (lw, lh, lb, etc.)
-            7'b1100111:   // JALR
-                imm = {{20{instr[31]}}, instr[31:20]};
+  // 6-to-1 32-bit MUX: select immediate format by opcode
+  // Each format is pure wire reorder (bit concatenation), zero extra gates
+  always @(*)
+  begin
+    case (opcode)
+      // I-type: imm_dat = {{20{instr[31]}}, instr[31:20]}
+      7'b0010011,   // I-type ALU (addi, slti, etc.)
+      7'b0000011,   // Load (lw, lh, lb, etc.)
+      7'b1100111:   // JALR
+      begin
+        imm_dat = {{20{instr[31]}}, instr[31:20]};
+      end
 
-            // S-type:  imm = {{20{instr[31]}}, instr[31:25], instr[11:7]}
-            7'b0100011:   // Store (sw, sh, sb)
-                imm = {{20{instr[31]}}, instr[31:25], instr[11:7]};
+      // S-type: imm_dat = {{20{instr[31]}}, instr[31:25], instr[11:7]}
+      7'b0100011:   // Store (sw, sh, sb)
+      begin
+        imm_dat = {{20{instr[31]}}, instr[31:25], instr[11:7]};
+      end
 
-            // B-type:  imm = {{19{instr[31]}}, instr[31], instr[7], instr[30:25], instr[11:8], 1'b0}
-            7'b1100011:   // Branch (beq, bne, blt, etc.)
-                imm = {{19{instr[31]}}, instr[31], instr[7], instr[30:25], instr[11:8], 1'b0};
+      // B-type: imm_dat = {{19{instr[31]}}, instr[31], instr[7],
+      //                     instr[30:25], instr[11:8], 1'b0}
+      7'b1100011:   // Branch (beq, bne, blt, etc.)
+      begin
+        imm_dat = {{19{instr[31]}}, instr[31], instr[7],
+                    instr[30:25], instr[11:8], 1'b0};
+      end
 
-            // U-type:  imm = {instr[31:12], 12'b0}
-            7'b0110111,   // LUI
-            7'b0010111:   // AUIPC
-                imm = {instr[31:12], 12'b0};
+      // U-type: imm_dat = {instr[31:12], 12'b0}
+      7'b0110111,   // LUI
+      7'b0010111:   // AUIPC
+      begin
+        imm_dat = {instr[31:12], 12'b0};
+      end
 
-            // J-type:  imm = {{11{instr[31]}}, instr[31], instr[19:12], instr[20], instr[30:21], 1'b0}
-            7'b1101111:   // JAL
-                imm = {{11{instr[31]}}, instr[31], instr[19:12], instr[20], instr[30:21], 1'b0};
+      // J-type: imm_dat = {{11{instr[31]}}, instr[31], instr[19:12],
+      //                     instr[20], instr[30:21], 1'b0}
+      7'b1101111:   // JAL
+      begin
+        imm_dat = {{11{instr[31]}}, instr[31], instr[19:12],
+                    instr[20], instr[30:21], 1'b0};
+      end
 
-            default:
-                imm = 32'b0;
-        endcase
-    end
+      default:
+      begin
+        imm_dat = 32'b0;
+      end
+    endcase
+  end
 
 endmodule

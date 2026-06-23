@@ -1,108 +1,100 @@
 //==============================================================================
-// memory.v — 统一存储器 (Unified Memory)
+// memory.v — Unified Memory (Von Neumann Architecture, Simulation Model)
 //==============================================================================
 //
-// 【电路架构】
-// ┌──────────────────────────────────────────────────────────────┐
-// │  功能：仿真用统一指令/数据存储器（冯·诺依曼架构）。               │
-// │        用于仿真阶段替代外部 SRAM。                              │
-// │                                                              │
-// │  数据通路（32-bit）：                                          │
-// │    指令读侧（组合逻辑）：                                       │
-// │      mem[i_word_addr] ──→ i_rdata[31:0]                       │
-// │    数据读侧（组合逻辑）：                                       │
-// │      mem[d_word_addr] ──→ d_rdata[31:0]（d_re 门控）          │
-// │    数据写侧（时序逻辑）：                                       │
-// │      d_wdata[31:0] ──→ mem[d_word_addr]（posedge clk + d_we） │
-// │                                                              │
-// │  地址通路（32-bit → word_addr）：                               │
-// │    i_addr[31:0] ──→ [右移2位] ──→ i_word_addr（字对齐）        │
-// │    d_addr[31:0] ──→ [右移2位] ──→ d_word_addr（字对齐）        │
-// │                                                              │
-// │  控制通路：                                                    │
-// │    d_we ──→ 写使能（门控 DFF.D 端）                            │
-// │    d_re ──→ 读使能（门控 d_rdata 输出）                        │
-// │                                                              │
-// │  路径分离分析：                                                │
-// │    - 数据通路：2 条独立读通道（组合） + 1 条写通道（时序）       │
-// │    - 地址通路：2 条独立地址输入，无冲突（单周期保证）             │
-// │    - 单周期设计中 I/D 端口永不冲突（设计保证），端口分离清晰      │
-// │    - 此模块为仿真模型，不反映实际 SRAM 的时序/面积特性           │
-// └──────────────────────────────────────────────────────────────┘
+// 【Circuit Architecture】
+//   Function: Unified instruction/data memory for simulation.
+//   Note: Simulation-only model. Real FPGA/ASIC would use separate I-MEM + D-MEM.
 //
-// 【宏单元映射与PPA评估】
-// ┌──────────────────────────────────────────────────────────────┐
-// │  宏单元清单（仿真模型，非可综合）：                              │
-// │    · 1× reg [31:0] mem[0:MEM_DEPTH-1]（仿真用存储器阵列）     │
-// │      物理对应：SRAM（实际芯片）或 DFF 阵列（FPGA）               │
-// │                                                              │
-// │  互联关系：                                                    │
-// │    · i_addr → i_word_addr（纯右移，零逻辑门）                   │
-// │    · d_addr → d_word_addr（纯右移，零逻辑门）                   │
-// │    · 写使能 d_we → 门控（扇出=1）                              │
-// │                                                              │
-// │  PPA评估（精度分级：低敏感度—基于逻辑分析）：                     │
-// │    · 面积：仿真中不计物理面积；实际实现中 SRAM≈晶体管密度的1/6    │
-// │    · 时序：实际 SRAM 读延迟≈1-3ns（工艺相关），是单周期关键路径   │
-// │    · 功耗：SRAM 读功耗<<写功耗，指令读取功耗稳定（几乎每周期读）   │
-// │    · 工艺依赖：SRAM 需要专门的 memory compiler 生成，            │
-// │              不同工艺节点面积/速度差异 2-5 倍                    │
-// └──────────────────────────────────────────────────────────────┘
+//   Data Path (32-bit):
+//     Read side (combinational):
+//       mem[imem_word_addr] → imem_rd_dat
+//       mem[dmem_word_addr] → dmem_rd_dat (dmem_rd_en gated)
+//     Write side (sequential):
+//       dmem_wr_dat → mem[dmem_word_addr] (posedge clk + dmem_wr_en)
 //
-// 【RTL代码】
+//   Address Path (byte addr → word addr, right shift by 2):
+//     imem_rd_addr[31:0] → [>>2] → imem_word_addr (word-aligned)
+//     dmem_addr[31:0]    → [>>2] → dmem_word_addr (word-aligned)
+//
+//   Control Path:
+//     dmem_wr_en → write enable gating (DFF.D side)
+//     dmem_rd_en → read enable gating (dmem_rd_dat output)
+//
+//   Path Separation:
+//     Data path: 2 independent read channels (combinational) + 1 write channel (sequential)
+//     Address path: 2 independent address inputs, zero conflict (single-cycle guarantee)
+//     Single-cycle design guarantees I/D ports never conflict
+//
+// 【Macro Mapping & PPA】
+//   Macros (simulation model, not synthesizable as-is):
+//     1× reg [31:0] mem[0:MEM_DEPTH-1] (simulation memory array)
+//       Physical analog: SRAM (real chip) or DFF array (FPGA)
+//
+//   PPA (simulation context, not for synthesis):
+//     Area: not applicable in simulation
+//     Timing: real SRAM read latency ≈ 1-3ns (process-dependent)
+//     Power: SRAM read << write, instruction read is steady-state (almost every cycle)
+//
+// 【RTL Code】
 //==============================================================================
 
-module memory #(
-    parameter MEM_DEPTH = 1024,        // word 数
-    parameter MEM_WIDTH = 4            // 字节数/word（固定为4：32-bit 寻址）
-) (
-    input  wire        clk,
+module memory
+#(
+  parameter MEM_DEPTH = 1024,
+  parameter MEM_WIDTH = 4
+)
+(
+  input  wire        clk,
 
-    // 指令端口（只读，组合逻辑）
-    input  wire [31:0] i_addr,
-    output wire [31:0] i_rdata,
+  // Instruction port (read-only, combinational)
+  input  wire [31:0] imem_rd_addr,
+  output wire [31:0] imem_rd_dat,
 
-    // 数据端口（读/写）
-    input  wire [31:0] d_addr,
-    input  wire [31:0] d_wdata,
-    output wire [31:0] d_rdata,
-    input  wire        d_we,
-    input  wire        d_re
+  // Data port (read/write)
+  input  wire [31:0] dmem_addr,
+  input  wire [31:0] dmem_wr_dat,
+  output wire [31:0] dmem_rd_dat,
+  input  wire        dmem_wr_en,
+  input  wire        dmem_rd_en
 );
 
-    // 存储器阵列（仿真用 reg 数组 → 综合为 SRAM 或 DFF 阵列）
-    reg [31:0] mem [0:MEM_DEPTH-1];
+  // Memory array (simulation reg array → synthesis maps to SRAM or DFF array)
+  reg [31:0] mem [0:MEM_DEPTH-1];
 
-    //----------------------------------------------------------------------
-    // 地址通路：字节地址 → word 地址（右移2位）
-    // 纯连线，零逻辑门
-    //----------------------------------------------------------------------
-    wire [$clog2(MEM_DEPTH)-1:0] i_word_addr = i_addr[$clog2(MEM_DEPTH)+1:2];
-    wire [$clog2(MEM_DEPTH)-1:0] d_word_addr = d_addr[$clog2(MEM_DEPTH)+1:2];
+  //------------------------------------------------------------------------------
+  // Address Path: byte address → word address (right shift by 2)
+  // Pure wiring, zero logic gates
+  //------------------------------------------------------------------------------
+  wire [$clog2(MEM_DEPTH)-1:0] imem_word_addr = imem_rd_addr[$clog2(MEM_DEPTH)+1:2];
+  wire [$clog2(MEM_DEPTH)-1:0] dmem_word_addr = dmem_addr[$clog2(MEM_DEPTH)+1:2];
 
-    //----------------------------------------------------------------------
-    // 读通路（组合逻辑）：I-port 始终读取，D-port 由 d_re 门控
-    //----------------------------------------------------------------------
-    assign i_rdata = mem[i_word_addr];
-    assign d_rdata = d_re ? mem[d_word_addr] : 32'b0;
+  //------------------------------------------------------------------------------
+  // Read Path (combinational): I-port always reads, D-port gated by dmem_rd_en
+  //------------------------------------------------------------------------------
+  assign imem_rd_dat = mem[imem_word_addr];
+  assign dmem_rd_dat = dmem_rd_en ? mem[dmem_word_addr] : 32'b0;
 
-    //----------------------------------------------------------------------
-    // 写通路（时序逻辑）：d_we 门控，posedge clk 写入
-    //----------------------------------------------------------------------
-    always @(posedge clk) begin
-        if (d_we)
-            mem[d_word_addr] <= d_wdata;
+  //------------------------------------------------------------------------------
+  // Write Path (sequential): dmem_wr_en gated, posedge clk write
+  //------------------------------------------------------------------------------
+  always @(posedge clk)
+  begin
+    if (dmem_wr_en)
+    begin
+      mem[dmem_word_addr] <= dmem_wr_dat;
     end
+  end
 
-    //----------------------------------------------------------------------
-    // 仿真辅助：初始化存储器
-    // 仿真时取消注释以加载测试程序
-    //----------------------------------------------------------------------
-    `ifdef SIMULATION
-    initial begin
-        // $readmemh("path/to/program.hex", mem);
-        // 或手动嵌入测试向量
-    end
-    `endif
+  //------------------------------------------------------------------------------
+  // Simulation helper: memory initialization
+  // Uncomment to load test programs at simulation start
+  //------------------------------------------------------------------------------
+  `ifdef SIMULATION
+  initial
+  begin
+    // $readmemh("path/to/program.hex", mem);
+  end
+  `endif
 
 endmodule

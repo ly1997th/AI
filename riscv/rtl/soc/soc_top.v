@@ -1,118 +1,111 @@
 //==============================================================================
-// soc_top.v — SoC 顶层集成 (SoC Top Level)
+// soc_top.v — SoC Top Level Integration
 //==============================================================================
 //
-// 【电路架构】
-// ┌──────────────────────────────────────────────────────────────┐
-// │  功能：集成处理器核心 + 统一存储器，构成最小可仿真系统。         │
-// │                                                              │
-// │  顶层拓扑（2 个宏单元）：                                       │
-// │                                                              │
-// │    ┌───────────┐        ┌───────────┐                        │
-// │    │           │  pc    │           │                        │
-// │    │           │──────→│           │                        │
-// │    │   core    │←──────│  memory   │                        │
-// │    │           │ instr │           │                        │
-// │    │           │       │           │                        │
-// │    │           │──────→│           │                        │
-// │    │           │ d_addr│           │                        │
-// │    │           │──────→│           │                        │
-// │    │           │d_wdata│           │                        │
-// │    │           │←──────│           │                        │
-// │    │           │d_rdata│           │                        │
-// │    │           │       │           │                        │
-// │    │           │ d_we  │           │                        │
-// │    │           │──────→│           │                        │
-// │    │           │ d_re  │           │                        │
-// │    │           │──────→│           │                        │
-// │    └───────────┘       └───────────┘                        │
-// │                                                              │
-// │  四维通路（顶层视角）：                                        │
-// │    数据通路：core↔memory — 32-bit 指令 + 32-bit 数据           │
-// │    地址通路：pc→memory.i_addr / alu_result→memory.d_addr      │
-// │    参数通路：无顶层参数                                        │
-// │    控制通路：mem_write/mem_read → memory.d_we/d_re            │
-// │                                                              │
-// │  设计决策：                                                    │
-// │    - 单周期处理器：指令和数据访问不会同时冲突（设计保证）         │
-// │    - 统一存储器简化了接口，但 I/D 共用端口是物理瓶颈             │
-// │    - 扩展方向：分离 I-MEM + D-MEM 支持流水线                   │
-// └──────────────────────────────────────────────────────────────┘
+// 【Circuit Architecture】
+//   Function: Integrate processor core + unified memory into a minimal system.
 //
-// 【宏单元映射与PPA评估】
-// ┌──────────────────────────────────────────────────────────────┐
-// │  宏单元清单：                                                  │
-// │    · 1× core 实例（完整处理器数据通路 + 控制通路）              │
-// │    · 1× memory 实例（统一 I/D 存储器）                         │
-// │                                                              │
-// │  互联关系（仅顶层连线，无逻辑）：                               │
-// │    · pc[31:0] → memory.i_addr（扇出=1，直连）                 │
-// │    · instr[31:0] → core.instr_i（扇出=1，直连）               │
-// │    · dmem_addr → memory.d_addr（扇出=1，直连）                │
-// │    · dmem_wdata → memory.d_wdata（扇出=1，直连）              │
-// │    · dmem_rdata → core.mem_rdata_i（扇出=1，直连）             │
-// │    · dmem_we → memory.d_we（扇出=1，直连）                    │
-// │    · dmem_re → memory.d_re（扇出=1，直连）                    │
-// │                                                              │
-// │  PPA评估（精度分级：低敏感度—基于逻辑分析）：                     │
-// │    · 本模块仅包含宏单元实例化 + 直连，无额外逻辑                 │
-// │    · 总面积 = core面积 + memory面积（详见各模块PPA评估）         │
-// │    · 端口直连无时序代价，关键路径在各模块内部                    │
-// │    · 无功耗贡献                                               │
-// └──────────────────────────────────────────────────────────────┘
+//   Top-Level Topology (2 macros, pure wiring):
+//     ┌───────────┐        ┌───────────┐
+//     │           │ imem_rd_addr  │           │
+//     │           │─────────────→│           │
+//     │   core    │←─────────────│  memory   │
+//     │           │ imem_rd_dat  │           │
+//     │           │              │           │
+//     │           │ dmem_addr    │           │
+//     │           │─────────────→│           │
+//     │           │ dmem_wr_dat  │           │
+//     │           │─────────────→│           │
+//     │           │←─────────────│           │
+//     │           │ dmem_rd_dat  │           │
+//     │           │ dmem_wr_en   │           │
+//     │           │─────────────→│           │
+//     │           │ dmem_rd_en   │           │
+//     │           │─────────────→│           │
+//     └───────────┘              └───────────┘
 //
-// 【RTL代码】
+//   Four-Dimensional Paths (top-level view):
+//     Data path: core↔memory — 32-bit instruction + 32-bit data
+//     Address path: imem_rd_addr→memory, dmem_addr→memory
+//     Parameter path: none at top level
+//     Control path: dmem_wr_en/dmem_rd_en → memory
+//
+//   Design Decisions:
+//     Single-cycle processor — instruction and data access never conflict
+//     Unified memory simplifies interface but I/D sharing is physical bottleneck
+//     Extension: separate I-MEM + D-MEM for pipeline support
+//
+// 【Macro Mapping & PPA】
+//   Macros:
+//     1× core instance (complete processor datapath + control)
+//     1× memory instance (unified I/D memory)
+//
+//   Interconnect (top-level wiring only, zero logic):
+//     All signals are point-to-point direct connections (fanout=1)
+//
+//   PPA (precision: low — logic analysis):
+//     This module contains only macro instantiation + direct wiring, zero logic
+//     Total area = core area + memory area (see individual module PPA)
+//     Zero timing cost from top-level wiring
+//     Zero power contribution
+//
+// 【RTL Code】
 //==============================================================================
 
-module soc_top (
-    input  wire clk,
-    input  wire rst_n
+module soc_top
+(
+  input  wire clk,
+  input  wire rst_n
 );
 
-    //--------------------------------------------------------------------------
-    // 内部互联信号（纯连线，零逻辑门）
-    //--------------------------------------------------------------------------
-    // 指令总线
-    wire [31:0] instr;
-    wire [31:0] pc;
+  //------------------------------------------------------------------------------
+  // Internal Interconnect Signals (pure wiring, zero logic gates)
+  //------------------------------------------------------------------------------
+  // Instruction bus
+  wire [31:0] imem_rd_dat;
+  wire [31:0] imem_rd_addr;
 
-    // 数据总线
-    wire [31:0] dmem_addr;
-    wire [31:0] dmem_wdata;
-    wire [31:0] dmem_rdata;
-    wire        dmem_we;
-    wire        dmem_re;
+  // Data bus
+  wire [31:0] dmem_addr;
+  wire [31:0] dmem_wr_dat;
+  wire [31:0] dmem_rd_dat;
+  wire        dmem_wr_en;
+  wire        dmem_rd_en;
 
-    //--------------------------------------------------------------------------
-    // core 实例化：完整单周期 RISC-V RV32I 处理器
-    //--------------------------------------------------------------------------
-    core u_core (
-        .clk          (clk),
-        .rst_n        (rst_n),
-        .instr_i      (instr),
-        .pc_o         (pc),
-        .mem_addr_o   (dmem_addr),
-        .mem_wdata_o  (dmem_wdata),
-        .mem_rdata_i  (dmem_rdata),
-        .mem_write_o  (dmem_we),
-        .mem_read_o   (dmem_re)
-    );
+  //------------------------------------------------------------------------------
+  // core instantiation: complete single-cycle RISC-V RV32I processor
+  //------------------------------------------------------------------------------
+  core u_core
+  (
+    .clk           (clk),
+    .rst_n         (rst_n),
+    .imem_rd_dat   (imem_rd_dat),
+    .imem_rd_addr  (imem_rd_addr),
+    .dmem_addr     (dmem_addr),
+    .dmem_wr_dat   (dmem_wr_dat),
+    .dmem_rd_dat   (dmem_rd_dat),
+    .dmem_wr_en    (dmem_wr_en),
+    .dmem_rd_en    (dmem_rd_en)
+  );
 
-    //--------------------------------------------------------------------------
-    // memory 实例化：统一指令/数据存储器（冯·诺依曼架构）
-    //--------------------------------------------------------------------------
-    memory #(
-        .MEM_DEPTH(1024),
-        .MEM_WIDTH(4)
-    ) u_memory (
-        .clk     (clk),
-        .i_addr  (pc),
-        .i_rdata (instr),
-        .d_addr  (dmem_addr),
-        .d_wdata (dmem_wdata),
-        .d_rdata (dmem_rdata),
-        .d_we    (dmem_we),
-        .d_re    (dmem_re)
-    );
+  //------------------------------------------------------------------------------
+  // memory instantiation: unified I/D memory (Von Neumann architecture)
+  //------------------------------------------------------------------------------
+  memory
+  #(
+    .MEM_DEPTH (1024),
+    .MEM_WIDTH (4)
+  )
+  u_memory
+  (
+    .clk          (clk),
+    .imem_rd_addr (imem_rd_addr),
+    .imem_rd_dat  (imem_rd_dat),
+    .dmem_addr    (dmem_addr),
+    .dmem_wr_dat  (dmem_wr_dat),
+    .dmem_rd_dat  (dmem_rd_dat),
+    .dmem_wr_en   (dmem_wr_en),
+    .dmem_rd_en   (dmem_rd_en)
+  );
 
 endmodule

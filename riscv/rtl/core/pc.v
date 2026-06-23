@@ -1,61 +1,60 @@
 //==============================================================================
-// pc.v — 程序计数器 (Program Counter)
+// pc.v — Program Counter
 //==============================================================================
 //
-// 【电路架构】
-// ┌─────────────────────────────────────────────────────────┐
-// │  功能：存储并更新当前指令地址。                            │
-// │                                                         │
-// │  数据通路（32-bit）：                                     │
-// │    next_pc[31:0] ──→ [32× DFF] ──→ pc[31:0]            │
-// │                        ↑                                │
-// │                       clk                               │
-// │                                                         │
-// │  控制通路（1-bit）：                                     │
-// │    rst_n ──→ DFF 异步复位端（rst_n=0 时 pc=RESET_VECTOR）│
-// │                                                         │
-// │  路径分离分析：                                          │
-// │    - 本模块纯数据通路，无地址/参数通路复杂度               │
-// │    - 控制通路仅有复位信号，扇出=32（驱动32个DFF的RST端）  │
-// │    - 无组合逻辑级联，关键路径仅 DFF CK→Q 延迟             │
-// └─────────────────────────────────────────────────────────┘
+// 【Circuit Architecture】
+//   Function: 32-bit instruction address register with async reset.
 //
-// 【宏单元映射与PPA评估】
-// ┌─────────────────────────────────────────────────────────┐
-// │  宏单元清单：                                            │
-// │    · 32× DFF (带异步复位RST，无EN)                       │
-// │                                                         │
-// │  互联关系：                                              │
-// │    · next_pc[31:0] → DFF.D[31:0]（扇出=1，直连）         │
-// │    · rst_n → DFF.RST（扇出=32，需关注复位树buffer）       │
-// │    · clk → DFF.CK（扇出=32，时钟树自动平衡）              │
-// │                                                         │
-// │  PPA评估（精度分级：低敏感度—基于逻辑分析）：               │
-// │    · 面积：32 DFF ≈ 32×6=192 门当量（极轻量）             │
-// │    · 时序：无组合路径，CK→Q ≈ 1个DFF延迟                  │
-// │    · 功耗：时钟翻转为主（32 DFF每周期翻转≈0.5概率），      │
-// │            复位路径贡献可忽略（仅上电时翻转一次）           │
-// │    · 工艺依赖：不同工艺下DFF面积差异显著，但本模块占比极小   │
-// └─────────────────────────────────────────────────────────┘
+//   Data Path (32-bit):
+//     pc_nxt[31:0] → [32× DFF] → pc[31:0]
 //
-// 【RTL代码】
+//   Control Path:
+//     rst_n → DFF async reset (pc=RESET_VECTOR when rst_n=0)
+//
+//   Path Separation:
+//     Pure data path — no address/parameter path complexity.
+//     Control path has only reset (fanout=32 DFF RST pins).
+//     Zero combinational logic between DFF Q and next stage.
+//
+// 【Macro Mapping & PPA】
+//   Macros:
+//     32× DFF (async reset, no enable)
+//
+//   Interconnect:
+//     pc_nxt → DFF.D (fanout=1, direct)
+//     rst_n → DFF.RST (fanout=32, reset tree needs buffer)
+//     clk → DFF.CK (fanout=32, clock tree auto-balanced)
+//
+//   PPA (precision: low — logic analysis):
+//     Area: 32 DFF ≈ 192 gate equivalents (lightweight)
+//     Timing: CK→Q ≈ 1 DFF delay, zero combinational path
+//     Power: dominated by clock toggling (32 DFF CK pins)
+//
+// 【RTL Code】
 //==============================================================================
 
-module pc #(
-    parameter RESET_VECTOR = 32'h0000_0000   // 复位后起始地址
-) (
-    input  wire        clk,
-    input  wire        rst_n,                // 异步复位，低有效
-    input  wire [31:0] next_pc,
-    output reg  [31:0] pc
+module pc
+#(
+  parameter RESET_VECTOR = 32'h0000_0000
+)
+(
+  input  wire        clk,
+  input  wire        rst_n,
+  input  wire [31:0] pc_nxt,
+  output reg  [31:0] pc
 );
 
-    // 32× DFF（带异步复位）：纯时序逻辑，无组合云
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n)
-            pc <= RESET_VECTOR;
-        else
-            pc <= next_pc;
+  // 32× DFF with async reset — pure sequential logic
+  always @(posedge clk or negedge rst_n)
+  begin
+    if (!rst_n)
+    begin
+      pc <= RESET_VECTOR;
     end
+    else
+    begin
+      pc <= pc_nxt;
+    end
+  end
 
 endmodule

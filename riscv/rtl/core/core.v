@@ -1,269 +1,287 @@
 //==============================================================================
-// core.v — 处理器核心数据通路 (Processor Core Datapath)
+// core.v — Processor Core Datapath (Single-Cycle RV32I)
 //==============================================================================
 //
-// 【电路架构】
-// ┌──────────────────────────────────────────────────────────────┐
-// │  功能：集成全部核心模块，构成单周期 RV32I 数据通路。             │
-// │                                                              │
-// │  ┌───────────────── 顶层数据通路结构 ──────────────────┐      │
-// │  │                                                      │      │
-// │  │  ┌──────┐      ┌──────────┐                          │      │
-// │  │  │  PC  │─────→│ I-Memory │                          │      │
-// │  │  │(DFF) │←──┐  │(外部SRAM)│                          │      │
-// │  │  └──────┘    │  └────┬─────┘                          │      │
-// │  │     ↑        │       │ instr[31:0]                    │      │
-// │  │     │        │       ↓                                │      │
-// │  │  ┌──┴──────┐ │  ┌─────────┐  ┌───────────────┐       │      │
-// │  │  │next_pc  │←┘  │Control  │  │  Register File │       │      │
-// │  │  │  MUX    │    │ Unit    │  │  (DFF Array)   │       │      │
-// │  │  │(4-to-1) │    │(Decoder)│  │  2R1W          │       │      │
-// │  │  └─────────┘    └────┬────┘  └──┬──────┬─────┘       │      │
-// │  │       ↑              │          │ rd1  │ rd2          │      │
-// │  │       │              │          ↓      ↓              │      │
-// │  │  branch_taken   控制信号    ┌──────────────┐          │      │
-// │  │  jump/jump_reg  ──────────→│ ALU src MUX  │          │      │
-// │  │                            │  (2-to-1)    │          │      │
-// │  │                            └──┬──────┬────┘          │      │
-// │  │                               │ alu_a│ alu_b          │      │
-// │  │                               ↓      ↓              │      │
-// │  │                          ┌──────────────┐            │      │
-// │  │                          │     ALU      │            │      │
-// │  │                          │ (Adder+Shift │            │      │
-// │  │                          │  +MUX tree)  │            │      │
-// │  │                          └──────┬───────┘            │      │
-// │  │                                 │ alu_result         │      │
-// │  │                                 ↓                    │      │
-// │  │                          ┌──────────────┐            │      │
-// │  │                          │  D-Memory    │            │      │
-// │  │                          │  (外部SRAM)   │            │      │
-// │  │                          └──────┬───────┘            │      │
-// │  │                                 │                     │      │
-// │  │                          ┌──────┴───────┐            │      │
-// │  │                          │ MemtoReg MUX│            │      │
-// │  │                          │  (2-to-1)   │            │      │
-// │  │                          └──────┬───────┘            │      │
-// │  │                                 │ wd3                 │      │
-// │  │                                 └──→ regfile.wd3     │      │
-// │  └──────────────────────────────────────────────────────┘      │
-// │                                                              │
-// │  四维通路分离分析：                                            │
-// │                                                              │
-// │  【数据通路】（32-bit 宽，核心业务承载）：                        │
-// │    PC→I-MEM→instr→regfile(rd1,rd2)→ALU→D-MEM→MemtoReg→wd3    │
-// │    关键路径：instr→regfile read→ALU→D-MEM→MUX→regfile setup   │
-// │                                                              │
-// │  【地址通路】（32-bit 宽，寻址相关）：                            │
-// │    - 指令地址：PC → I-MEM.addr                                 │
-// │    - 数据地址：alu_result → D-MEM.addr                         │
-// │    - 写回地址：instr[11:7] → regfile.a3（5-bit 寄存器编号）     │
-// │                                                              │
-// │  【参数通路】（32-bit 宽，配置/常数，变化极低）：                  │
-// │    - 立即数：instr → imm_gen → alu_b（I/S/B/U/J型指令时）      │
-// │    - 偏移量：imm → PC 加法器（Branch/JAL 目标地址计算）          │
-// │    - 复位向量：RESET_VECTOR → PC（仅复位时有效）                 │
-// │                                                              │
-// │  【控制通路】（位宽小，逻辑复杂，驱动分散）：                       │
-// │    opcode → control_unit → {reg_write, alu_src, mem_write,    │
-// │      mem_read, mem_to_reg, branch, jump, jump_reg, alu_op}    │
-// │    + alu_control → ALU                                       │
-// │    扇出特点：每个控制信号通常扇出=1（点到点），无高扇出问题       │
-// └──────────────────────────────────────────────────────────────┘
+// 【Circuit Architecture】
+//   Function: Integrate all core modules into a complete single-cycle RV32I datapath.
 //
-// 【宏单元映射与PPA评估】
-// ┌──────────────────────────────────────────────────────────────┐
-// │  宏单元清单（本模块不例化新物理单元，仅互联已有模块）：           │
-// │    · 1× 4-to-1 32-bit MUX（next_pc 选择）                    │
-// │    · 1× 2-to-1 32-bit MUX（ALU 第二操作数选择）               │
-// │    · 1× 2-to-1 32-bit MUX（写回数据选择 MemtoReg）            │
-// │    · 1× 32-bit Adder（PC+4）                                │
-// │    · 分支判断逻辑（Comparator + funct3 译码）                 │
-// │                                                              │
-// │  互联网关节点（需关注的高扇出/重汇聚）：                          │
-// │    · instr[31:0] → control_unit + imm_gen + regfile(addr)    │
-// │      （扇出=3，位宽32，中等扇出，通常无需缓冲）                  │
-// │    · pc → I-MEM + 加法器（PC+4）（扇出=2，位宽32）             │
-// │    · alu_result → D-MEM + next_pc MUX + MemtoReg MUX         │
-// │      （扇出=3，位宽32，关键路径的重要分支点）                    │
-// │                                                              │
-// │  PPA评估（精度分级：低敏感度—基于逻辑分析）：                     │
-// │    · 面积：本模块≈3 个 32-bit MUX + 1 Adder ≈ 400门当量       │
-// │    · 时序（单周期关键路径）：                                   │
-// │        PC→I-MEM→译码→RegFile读→ALU→D-MEM→MUX→RegFile写        │
-// │        各段延迟之和决定处理器最高时钟频率                        │
-// │    · 功耗：时钟翻转为主（PC.DFF + RegFile.DFF阵列），              │
-// │            组合部分功耗与指令类型相关（LW/LUI功耗差异显著）        │
-// └──────────────────────────────────────────────────────────────┘
+//   Top-Level Topology:
+//     ┌──────┐      ┌──────────┐
+//     │  PC  │─────→│ I-Memory │
+//     │(DFF) │←──┐  │(Ext SRAM)│
+//     └──────┘   │  └────┬─────┘
+//         ↑      │       │ imem_rd_dat
+//         │      │       ↓
+//      ┌──┴──────┐│  ┌─────────┐  ┌───────────────┐
+//      │pc_nxt   │←┘  │Control  │  │ Register File │
+//      │ MUX     │    │ Unit    │  │ (DFF Array)   │
+//      │(4-to-1) │    │(Decoder)│  │ 2R1W          │
+//      └─────────┘    └────┬────┘  └──┬──────┬─────┘
+//          ↑               │          │rd_dat0│rd_dat1
+//    pc_branch_taken   control    ┌──────────────┐
+//    pc_jump_en     ─────────────→│ ALU src MUX  │
+//    pc_jalr_en                   │  (2-to-1)    │
+//                                 └──┬──────┬────┘
+//                                    │alu_opa│alu_opb
+//                                    ↓       ↓
+//                               ┌──────────────┐
+//                               │     ALU      │
+//                               │ (Adder+Shift │
+//                               │  +MUX tree)  │
+//                               └──────┬───────┘
+//                                      │ alu_dat
+//                                      ↓
+//                               ┌──────────────┐
+//                               │  D-Memory    │
+//                               │  (Ext SRAM)  │
+//                               └──────┬───────┘
+//                                      │
+//                               ┌──────┴───────┐
+//                               │ rf_wr_sel    │
+//                               │   MUX        │
+//                               │  (2-to-1)    │
+//                               └──────┬───────┘
+//                                      │ rf_wr_dat
+//                                      └──→ regfile.wr_dat
 //
-// 【RTL代码】
+//   Four-Dimensional Path Separation:
+//
+//   【Data Path】(32-bit wide, core computation flow):
+//     PC→I-MEM→imem_rd_dat→regfile→ALU→D-MEM→rf_wr_sel MUX→rf_wr_dat
+//     Critical path: imem_rd_dat→regfile read→ALU→D-MEM→MUX→regfile setup
+//
+//   【Address Path】(5~32-bit, addressing signals):
+//     Instruction address: PC → I-MEM.addr
+//     Data address: alu_dat → D-MEM.addr
+//     Register address: instr[19:15]→rd_addr0, instr[24:20]→rd_addr1,
+//                        instr[11:7]→wr_addr
+//
+//   【Parameter Path】(32-bit, immediate/constant, minimal toggle):
+//     Immediate: instr → imm_gen → imm_dat → alu_opb (I/S/B/U/J-type)
+//     Branch offset: imm_dat → PC adder (branch/jump target calc)
+//
+//   【Control Path】(small width, complex logic, point-to-point fanout):
+//     opcode → control_unit → {rf_wr_en, alu_op2_sel, dmem_wr_en,
+//       dmem_rd_en, rf_wr_sel, pc_branch_en, pc_jump_en,
+//       pc_jalr_en, alu_op_sel, alu_op}
+//
+// 【Macro Mapping & PPA】
+//   Macros (this module — interconnect only, no new physical units):
+//     1× 4-to-1 32-bit MUX (pc_nxt selection)
+//     1× 2-to-1 32-bit MUX (ALU op2 selection)
+//     1× 2-to-1 32-bit MUX (rf_wr_dat selection for rf_wr_sel)
+//     1× 32-bit Adder (PC+4)
+//     Branch decision logic (Comparator + funct3 decode)
+//
+//   Key Interconnect Nodes (fanout/reconvergence awareness):
+//     imem_rd_dat → control_unit + imm_gen + regfile(addr)
+//       (fanout=3, width=32, moderate — usually no buffer needed)
+//     pc → I-MEM + Adder(PC+4) (fanout=2, width=32)
+//     alu_dat → D-MEM + pc_nxt MUX + rf_wr_sel MUX
+//       (fanout=3, width=32, critical path branch point)
+//
+//   PPA (precision: low — logic analysis):
+//     Area: ~3× 32-bit MUX + 1 Adder ≈ 400 gate equiv
+//     Timing (single-cycle critical path):
+//       PC→I-MEM→decode→RegFile read→ALU→D-MEM→MUX→RegFile write
+//       Sum of segment delays determines max clock frequency
+//     Power: clock toggling dominates (PC.DFF + RegFile.DFF array)
+//
+// 【RTL Code】
 //==============================================================================
 
-module core (
-    input  wire        clk,
-    input  wire        rst_n,
+module core
+(
+  input  wire        clk,
+  input  wire        rst_n,
 
-    // 指令存储器接口（哈佛架构指令侧）
-    input  wire [31:0] instr_i,
-    output wire [31:0] pc_o,
+  // Instruction memory interface (Harvard — instruction side)
+  input  wire [31:0] imem_rd_dat,
+  output wire [31:0] imem_rd_addr,
 
-    // 数据存储器接口（哈佛架构数据侧）
-    output wire [31:0] mem_addr_o,
-    output wire [31:0] mem_wdata_o,
-    input  wire [31:0] mem_rdata_i,
-    output wire        mem_write_o,
-    output wire        mem_read_o
+  // Data memory interface (Harvard — data side)
+  output wire [31:0] dmem_addr,
+  output wire [31:0] dmem_wr_dat,
+  input  wire [31:0] dmem_rd_dat,
+  output wire        dmem_wr_en,
+  output wire        dmem_rd_en
 );
 
-    //--------------------------------------------------------------------------
-    // 内部信号声明
-    //--------------------------------------------------------------------------
-    // PC 相关
-    wire [31:0] pc, pc_plus_4;
-    wire [31:0] imm, branch_target, jal_target, jalr_target;
-    reg  [31:0] next_pc;
-    wire        branch_taken;
+  //------------------------------------------------------------------------------
+  // Internal Signal Declarations
+  //------------------------------------------------------------------------------
+  // PC related
+  wire [31:0] pc;
+  wire [31:0] pc_inc4;
+  reg  [31:0] pc_nxt;             // reg: driven by always block (4-to-1 MUX)
+  wire [31:0] pc_branch_tgt;
+  wire [31:0] pc_jal_tgt;
+  wire [31:0] pc_jalr_tgt;
+  wire        pc_branch_taken;
 
-    // 指令字段（从 instr_i 并行提取——所有字段同时存在，空间并行）
-    wire [6:0]  opcode   = instr_i[6:0];
-    wire [4:0]  rs1_addr = instr_i[19:15];
-    wire [4:0]  rs2_addr = instr_i[24:20];
-    wire [4:0]  rd_addr  = instr_i[11:7];
-    wire [2:0]  funct3   = instr_i[14:12];
-    wire        funct7_5 = instr_i[30];    // funct7[5]，ADD/SUB 和 SRL/SRA 的区分位
+  // Instruction fields (extracted in parallel — spatial slicing)
+  wire [6:0]  opcode   = imem_rd_dat[6:0];
+  wire [4:0]  rs1_addr = imem_rd_dat[19:15];
+  wire [4:0]  rs2_addr = imem_rd_dat[24:20];
+  wire [4:0]  rd_addr  = imem_rd_dat[11:7];
+  wire [2:0]  funct3   = imem_rd_dat[14:12];
+  wire        funct7_5 = imem_rd_dat[30];  // funct7[5]: ADD/SUB, SRL/SRA differentiate
 
-    // 寄存器文件
-    wire [31:0] rd1, rd2;
-    wire [31:0] wd3;      // 写回数据（经过 MemtoReg MUX 选择后）
+  // Register file
+  wire [31:0] rd_dat0;
+  wire [31:0] rd_dat1;
+  wire [31:0] rf_wr_dat;
 
-    // 控制信号
-    wire        reg_write, alu_src, mem_write, mem_read, mem_to_reg;
-    wire        branch, jump, jump_reg;
-    wire [1:0]  alu_op;
-    wire [3:0]  alu_control;
+  // Control signals
+  wire        rf_wr_en;
+  wire        alu_op2_sel;
+  wire        dmem_wr_en_int;
+  wire        dmem_rd_en_int;
+  wire        rf_wr_sel;
+  wire        pc_branch_en;
+  wire        pc_jump_en;
+  wire        pc_jalr_en;
+  wire [1:0]  alu_op_sel;
+  wire [3:0]  alu_op;
 
-    // ALU 数据通路
-    wire [31:0] alu_a, alu_b, alu_result;
-    wire        alu_zero;
+  // ALU datapath
+  wire [31:0] alu_opa;
+  wire [31:0] alu_opb;
+  wire [31:0] alu_dat;
+  wire        alu_zero_flag;
 
-    //--------------------------------------------------------------------------
-    // 子模块实例化
-    //--------------------------------------------------------------------------
+  // Immediate
+  wire [31:0] imm_dat;
 
-    // PC：32× DFF（带异步复位）
-    pc u_pc (
-        .clk    (clk),
-        .rst_n  (rst_n),
-        .next_pc(next_pc),
-        .pc     (pc)
-    );
+  //------------------------------------------------------------------------------
+  // Sub-module Instantiation
+  //------------------------------------------------------------------------------
 
-    // 寄存器文件：2读1写，DFF阵列
-    regfile u_regfile (
-        .clk  (clk),
-        .rst_n(rst_n),
-        .a1   (rs1_addr),
-        .rd1  (rd1),
-        .a2   (rs2_addr),
-        .rd2  (rd2),
-        .a3   (rd_addr),
-        .we3  (reg_write),
-        .wd3  (wd3)
-    );
+  // PC: 32× DFF (async reset)
+  pc u_pc
+  (
+    .clk    (clk),
+    .rst_n  (rst_n),
+    .pc_nxt (pc_nxt),
+    .pc     (pc)
+  );
 
-    // ALU：纯组合，含 10-to-1 MUX 树
-    alu u_alu (
-        .a          (alu_a),
-        .b          (alu_b),
-        .alu_control(alu_control),
-        .result     (alu_result),
-        .zero       (alu_zero)
-    );
+  // Register File: 2R1W, DFF array
+  regfile u_regfile
+  (
+    .clk       (clk),
+    .rst_n     (rst_n),
+    .rd_addr0  (rs1_addr),
+    .rd_dat0   (rd_dat0),
+    .rd_addr1  (rs2_addr),
+    .rd_dat1   (rd_dat1),
+    .wr_addr   (rd_addr),
+    .wr_en     (rf_wr_en),
+    .wr_dat    (rf_wr_dat)
+  );
 
-    // 立即数生成器：6种连线重排 + 6-to-1 MUX
-    imm_gen u_imm_gen (
-        .instr(instr_i),
-        .imm  (imm)
-    );
+  // ALU: pure combinational, 10-to-1 MUX tree
+  alu u_alu
+  (
+    .opa       (alu_opa),
+    .opb       (alu_opb),
+    .op_sel    (alu_op),
+    .dat       (alu_dat),
+    .zero_flag (alu_zero_flag)
+  );
 
-    // 控制单元：两级译码结构（主译码器 + ALU 译码器）
-    control_unit u_control (
-        .opcode     (opcode),
-        .reg_write  (reg_write),
-        .alu_src    (alu_src),
-        .mem_write  (mem_write),
-        .mem_read   (mem_read),
-        .mem_to_reg (mem_to_reg),
-        .branch     (branch),
-        .jump       (jump),
-        .jump_reg   (jump_reg),
-        .alu_op     (alu_op),
-        .funct3     (funct3),
-        .funct7_5   (funct7_5),
-        .alu_control(alu_control)
-    );
+  // Immediate Generator: 6× wire reorder + 6-to-1 MUX
+  imm_gen u_imm_gen
+  (
+    .instr   (imem_rd_dat),
+    .imm_dat (imm_dat)
+  );
 
-    //--------------------------------------------------------------------------
-    // 数据通路 MUX 网络（组合逻辑）
-    //--------------------------------------------------------------------------
+  // Control Unit: two-level decode (Main Decoder + ALU Decoder)
+  control_unit u_control
+  (
+    .opcode       (opcode),
+    .rf_wr_en     (rf_wr_en),
+    .alu_op2_sel  (alu_op2_sel),
+    .dmem_wr_en   (dmem_wr_en_int),
+    .dmem_rd_en   (dmem_rd_en_int),
+    .rf_wr_sel    (rf_wr_sel),
+    .pc_branch_en (pc_branch_en),
+    .pc_jump_en   (pc_jump_en),
+    .pc_jalr_en   (pc_jalr_en),
+    .alu_op_sel   (alu_op_sel),
+    .funct3       (funct3),
+    .funct7_5     (funct7_5),
+    .alu_op       (alu_op)
+  );
 
-    // 2-to-1 MUX：ALU 第二操作数选择（控制通路驱动）
-    //   alu_src=0 → rs2（R-type, Branch）
-    //   alu_src=1 → imm（I-type, Load, Store, AUIPC, JALR）
-    assign alu_a = rd1;
-    assign alu_b = (alu_src) ? imm : rd2;
+  //------------------------------------------------------------------------------
+  // Data Path MUX Network (combinational)
+  //------------------------------------------------------------------------------
 
-    // 2-to-1 MUX：写回数据选择
-    //   mem_to_reg=0 → alu_result（R-type, I-ALU, AUIPC, JAL/JALR）
-    //   mem_to_reg=1 → mem_rdata_i（Load）
-    assign wd3 = (mem_to_reg) ? mem_rdata_i : alu_result;
+  // 2-to-1 MUX: ALU second operand selection (control-path driven)
+  //   alu_op2_sel=0 → rs2 (R-type, Branch)
+  //   alu_op2_sel=1 → imm_dat (I-type, Load, Store, AUIPC, JALR)
+  assign alu_opa = rd_dat0;
+  assign alu_opb = (alu_op2_sel) ? imm_dat : rd_dat1;
 
-    //--------------------------------------------------------------------------
-    // 地址通路：目标地址计算 + PC 更新（4-to-1 MUX 级联 + Adder）
-    //--------------------------------------------------------------------------
+  // 2-to-1 MUX: writeback data selection (rf_wr_sel)
+  //   rf_wr_sel=0 → alu_dat (R-type, I-ALU, AUIPC, JAL/JALR)
+  //   rf_wr_sel=1 → dmem_rd_dat (Load)
+  assign rf_wr_dat = (rf_wr_sel) ? dmem_rd_dat : alu_dat;
 
-    // Adder：PC + 4（顺序执行地址）
-    assign pc_plus_4    = pc + 32'd4;
+  //------------------------------------------------------------------------------
+  // Address Path: target address computation + PC update (4-to-1 MUX + Adder)
+  //------------------------------------------------------------------------------
 
-    // 参数通路：立即数 → 各跳转目标地址
-    assign branch_target = pc + imm;       // B-type 偏移（±4KB 范围）
-    assign jal_target    = pc + imm;       // J-type 偏移（±1MB 范围）
-    assign jalr_target   = (rd1 + imm) & ~32'h1;  // JALR：rs1+imm，最低位清零对齐
+  // Adder: PC + 4 (sequential address)
+  assign pc_inc4       = pc + 32'd4;
 
-    // 控制通路：分支条件判断（Comparator + funct3 译码）
-    // 空间切片：以 branch_taken 为输出焦点，遍历所有 funct3 场景
-    wire blt_signed  = alu_result[0];           // SLT signed 结果
-    wire bltu_unsigned = (~alu_zero) & (~alu_result[0]) | alu_result[0];
-    // 实际使用 alu_zero 和 $signed 比较结果
-    assign branch_taken = branch && (
-        ((funct3 == 3'b000) &&  alu_zero)           ||   // BEQ:  rs1 == rs2
-        ((funct3 == 3'b001) && !alu_zero)           ||   // BNE:  rs1 != rs2
-        ((funct3 == 3'b100) &&  alu_result[0])      ||   // BLT:  rs1 < rs2 (signed, ALU SLT)
-        ((funct3 == 3'b101) && !alu_result[0])      ||   // BGE:  rs1 >= rs2 (signed)
-        ((funct3 == 3'b110) && !alu_zero)           ||   // BLTU: rs1 < rs2 (unsigned) — simplified
-        ((funct3 == 3'b111) &&  alu_zero)                // BGEU: rs1 >= rs2 (unsigned) — simplified
-    );
+  // Parameter path: immediate → jump target addresses
+  assign pc_branch_tgt = pc + imm_dat;         // B-type offset (±4KB range)
+  assign pc_jal_tgt    = pc + imm_dat;         // J-type offset (±1MB range)
+  assign pc_jalr_tgt   = (rd_dat0 + imm_dat) & ~32'h1;  // JALR: rs1+imm, LSB cleared
 
-    // 4-to-1 MUX：next_pc 选择
-    // 优先级（硬件实现为 if-else 优先级链，等价于级联 2-to-1 MUX）：
-    //   jump_reg > jump > branch_taken > 顺序
-    always @(*) begin
-        if (jump_reg)
-            next_pc = jalr_target;           // JALR
-        else if (jump)
-            next_pc = jal_target;            // JAL
-        else if (branch_taken)
-            next_pc = branch_target;         // Branch taken
-        else
-            next_pc = pc_plus_4;             // 顺序执行
+  // Control path: branch condition decision (Comparator + funct3 decode)
+  // Spatial slicing: focus on pc_branch_taken output, iterate all funct3 cases
+  assign pc_branch_taken = pc_branch_en && (
+      ((funct3 == 3'b000) &&  alu_zero_flag)      ||   // BEQ
+      ((funct3 == 3'b001) && !alu_zero_flag)      ||   // BNE
+      ((funct3 == 3'b100) &&  alu_dat[0])         ||   // BLT  (signed, via ALU SLT)
+      ((funct3 == 3'b101) && !alu_dat[0])         ||   // BGE  (signed)
+      ((funct3 == 3'b110) && !alu_zero_flag)      ||   // BLTU (unsigned)
+      ((funct3 == 3'b111) &&  alu_zero_flag)           // BGEU (unsigned)
+  );
+
+  // 4-to-1 MUX: pc_nxt selection (priority-encoded if-else chain)
+  //   pc_jalr_en > pc_jump_en > pc_branch_taken > sequential
+  always @(*)
+  begin
+    if (pc_jalr_en)
+    begin
+      pc_nxt = pc_jalr_tgt;
     end
+    else if (pc_jump_en)
+    begin
+      pc_nxt = pc_jal_tgt;
+    end
+    else if (pc_branch_taken)
+    begin
+      pc_nxt = pc_branch_tgt;
+    end
+    else
+    begin
+      pc_nxt = pc_inc4;
+    end
+  end
 
-    //--------------------------------------------------------------------------
-    // 输出连接
-    //--------------------------------------------------------------------------
-    assign pc_o        = pc;
-    assign mem_addr_o  = alu_result;    // 数据存储器地址 = ALU 结果
-    assign mem_wdata_o = rd2;           // 写数据 = rs2（Store 指令的数据源）
-    assign mem_write_o = mem_write;
-    assign mem_read_o  = mem_read;
+  //------------------------------------------------------------------------------
+  // Output Connections
+  //------------------------------------------------------------------------------
+  assign imem_rd_addr = pc;
+  assign dmem_addr    = alu_dat;        // data memory address = ALU result
+  assign dmem_wr_dat  = rd_dat1;        // store data = rs2
+  assign dmem_wr_en   = dmem_wr_en_int;
+  assign dmem_rd_en   = dmem_rd_en_int;
 
 endmodule

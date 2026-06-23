@@ -14,6 +14,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **强制设计方法论**：本项目严格遵循 `refs/rtl_design_rule.md` 的硬件优先原则。
 所有 RTL 开发必须遵循 **电路架构 → 宏单元映射与PPA评估 → RTL代码** 三段式工作流。
 
+**编码规范参考**：
+- 信号命名：[refs/signal_naming_guide.md](refs/signal_naming_guide.md) — 名词后缀、修饰词前缀
+- 编码风格：[refs/coding_standard.md](refs/coding_standard.md) — 2空格缩进、begin另起行、英文注释
+- 总线协议：[refs/bus_protocol_guide.md](refs/bus_protocol_guide.md) — taskbus/vldbus/hskbus/fifobus/bufbus
+- 方法学索引：[refs/design_methodology_index.md](refs/design_methodology_index.md)
+
 ## 常用命令
 
 ### C 语言交叉编译（RISC-V 裸机程序）
@@ -144,17 +150,21 @@ soc_top.v (SoC 顶层)
 | U-type | imm[31:12] + rd[11:7] + opcode[6:0] | lui, auipc |
 | J-type | imm[20|10:1|11|19:12] + rd[11:7] + opcode[6:0] | jal |
 
-### 控制信号一览
+### 控制信号一览（新命名规范）
 
-| 信号 | 说明 | 来源 |
-|------|------|------|
-| RegWrite | 写使能寄存器文件 | control_unit |
-| ALUSrc | ALU 第二操作数选择 (0=rs2, 1=imm) | control_unit |
-| MemWrite | 数据存储器写使能 | control_unit |
-| MemRead | 数据存储器读使能 | control_unit |
-| MemtoReg | 写回数据选择 (0=ALU结果, 1=内存数据) | control_unit |
-| Branch | 分支指令标志 | control_unit |
-| ALUOp | ALU 操作码 | control_unit |
+| 信号 | 旧名称 | 说明 | 去向 |
+|------|--------|------|------|
+| rf_wr_en | RegWrite | 寄存器文件写使能 | regfile.wr_en |
+| alu_op2_sel | ALUSrc | ALU 第二操作数来源 (0=rs2, 1=imm) | ALU src MUX |
+| dmem_wr_en | MemWrite | 数据存储器写使能 | memory.dmem_wr_en |
+| dmem_rd_en | MemRead | 数据存储器读使能 | memory.dmem_rd_en |
+| rf_wr_sel | MemtoReg | 写回数据选择 (0=ALU, 1=内存) | MemtoReg MUX |
+| pc_branch_en | Branch | 分支指令标志 | PC next logic |
+| pc_jump_en | Jump | 无条件跳转标志 (JAL) | PC next logic |
+| pc_jalr_en | JumpReg | 间接跳转标志 (JALR) | PC next logic |
+| alu_op[3:0] | ALUControl | ALU 操作码 | alu.op_sel |
+
+> 命名规则遵循 [refs/signal_naming_guide.md](refs/signal_naming_guide.md)：名词后缀（_en, _sel, _addr, _dat），修饰词前缀。
 
 ## 设计方法论（强制）
 
@@ -185,11 +195,15 @@ soc_top.v (SoC 顶层)
 - 条件赋值 = **ICG拓扑（时钟使能）** 或 **带反馈的MUX（数据使能）**
 
 ### Verilog 编码规范
-- 模块名使用小写+下划线（`control_unit`, `reg_file`）
-- 信号名使用小写+下划线（`alu_result`, `reg_write_data`）
+- 模块名使用小写+下划线（`control_unit`, `regfile`）
+- 信号名：**名词后缀**原则 — `_en`, `_sel`, `_dat`, `_addr`, `_nxt`, `_flag`, `_vld`
+- 信号名使用小写+下划线（`alu_dat`, `rf_wr_en`, `pc_nxt`）
 - 参数使用大写+下划线（`DATA_WIDTH`, `ADDR_WIDTH`）
 - 每个模块一个文件，文件名 = 模块名 + `.v`
-- 每个模块的文件头必须包含 **电路架构→宏单元映射与PPA评估→RTL代码** 三段注释
+- **2空格缩进**，begin 另起一行与 end 对齐
+- **else/default 必须显式写出**
+- 注释使用 `//`（英文），禁止 `/**/`
+- 每个模块的文件头必须包含 **电路架构→宏单元映射与PPA评估→RTL代码** 三段
 
 ### 文件组织
 - `sw/` — C 语言测试程序（裸机，无 OS 依赖）
@@ -215,7 +229,12 @@ soc_top.v (SoC 顶层)
 ## 关键参考文件
 
 - [refs/rtl_design_rule.md](refs/rtl_design_rule.md) — **IC逻辑设计规范（强制阅读）**
+- [refs/design_methodology_index.md](refs/design_methodology_index.md) — **逻辑设计方法学知识库索引**
+- [refs/signal_naming_guide.md](refs/signal_naming_guide.md) — 信号命名规范
+- [refs/coding_standard.md](refs/coding_standard.md) — Verilog 编码规范
+- [refs/bus_protocol_guide.md](refs/bus_protocol_guide.md) — 总线协议规范
 - [refs/instructions-reference.md](refs/instructions-reference.md) — 全部 RV32I 指令编码速查表
+- [refs/riscv-spec-summary.md](refs/riscv-spec-summary.md) — RISC-V 规范核心摘要
 - [refs/links.md](refs/links.md) — 外部学习资源
 - [notes/01-isa-basics.md](notes/01-isa-basics.md) — ISA 基础笔记
 - [notes/02-digital-logic.md](notes/02-digital-logic.md) — 数字逻辑与硬件思维
